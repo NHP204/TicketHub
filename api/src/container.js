@@ -3,6 +3,7 @@ import * as passwordUtil from './utils/password.js';
 import * as jwtUtil from './utils/jwt.js';
 import * as userRepo from './repositories/user.repo.js';
 import * as refreshTokenRepo from './repositories/refresh-token.repo.js';
+import * as eventRepo from './repositories/event.repo.js';
 import { authenticate } from './middlewares/authenticate.js';
 import { createRateLimiter } from './middlewares/rate-limit.js';
 import { AuthService } from './modules/auth/auth.service.js';
@@ -11,6 +12,9 @@ import { createAuthRouter } from './modules/auth/auth.routes.js';
 import { UsersService } from './modules/users/users.service.js';
 import { createUsersController } from './modules/users/users.controller.js';
 import { createUsersRouter } from './modules/users/users.routes.js';
+import { EventService } from './modules/events/events.service.js';
+import { createEventsController } from './modules/events/events.controller.js';
+import { createEventsRouter } from './modules/events/events.routes.js';
 
 const AUTH_RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
 
@@ -29,6 +33,7 @@ export function buildContainer({ env, pool, rateLimitEnabled = env.NODE_ENV !== 
     accessSecret: env.JWT_ACCESS_SECRET,
   });
   const usersService = new UsersService({ pool, userRepo, refreshTokenRepo, passwordUtil });
+  const eventService = new EventService({ pool, eventRepo });
   const cookieOptions = refreshCookieOptions({
     nodeEnv: env.NODE_ENV,
     maxAgeMs: jwtUtil.REFRESH_TOKEN_TTL_MS,
@@ -43,6 +48,7 @@ export function buildContainer({ env, pool, rateLimitEnabled = env.NODE_ENV !== 
   const routers = [
     createAuthRouter(createAuthController(authService, cookieOptions), authLimiters),
     createUsersRouter(createUsersController(usersService), requireAuth),
+    createEventsRouter(createEventsController(eventService), requireAuth),
   ];
 
   return { logger, routers };
