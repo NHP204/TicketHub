@@ -24,9 +24,10 @@ function isOwner(event, actor) {
 
 // actor = { id, role } — người thực hiện thao tác, lấy từ access token.
 export class EventService {
-  constructor({ pool, eventRepo, now = () => new Date() }) {
+  constructor({ pool, eventRepo, seatRepo, now = () => new Date() }) {
     this.pool = pool;
     this.eventRepo = eventRepo;
+    this.seatRepo = seatRepo;
     this.now = now;
   }
 
@@ -69,6 +70,13 @@ export class EventService {
     if (event.status === 'PUBLISHED') return event;
     if (actor && (isOwner(event, actor) || actor.role === 'ADMIN')) return event;
     throw eventNotFound();
+  }
+
+  // Ai xem được event (theo getById) thì xem được sơ đồ ghế.
+  async getSeatMap(actor, eventId) {
+    await this.getById(actor, eventId);
+    const sections = await this.seatRepo.findSeatMap(this.pool, eventId);
+    return { eventId, sections };
   }
 
   async create(actor, { title, description, venue, startTime, endTime }) {

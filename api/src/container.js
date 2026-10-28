@@ -38,7 +38,7 @@ export function buildContainer({ env, pool, rateLimitEnabled = env.NODE_ENV !== 
     accessSecret: env.JWT_ACCESS_SECRET,
   });
   const usersService = new UsersService({ pool, userRepo, refreshTokenRepo, passwordUtil });
-  const eventService = new EventService({ pool, eventRepo });
+  const eventService = new EventService({ pool, eventRepo, seatRepo });
   const sectionService = new SectionService({ pool, eventRepo, sectionRepo, seatRepo });
   const cookieOptions = refreshCookieOptions({
     nodeEnv: env.NODE_ENV,

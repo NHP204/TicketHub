@@ -99,3 +99,65 @@ test('xóa section có 1 ghế BOOKED thì nhận 409 SECTION_HAS_BOOKINGS', asy
     { status: 409, code: 'SECTION_HAS_BOOKINGS' },
   );
 });
+
+// Sự kiện PUBLISHED (khách xem được sơ đồ ghế) có một section 1 hàng × 2 ghế.
+async function publishedEventWithSection() {
+  const organizer = await createUser({ role: 'ORGANIZER' });
+  const event = await createEvent(organizer.id, { status: 'PUBLISHED' });
+  const created = await postSection(organizer, event.id, {
+    name: 'VIP',
+    price: 500000,
+    rowCount: 1,
+    seatsPerRow: 2,
+  });
+  return { event, sectionId: created.body.data.id };
+}
+
+// Giữ ghế A1 của section; held_until = now() + interval.
+async function holdSeatA1(sectionId, interval) {
+  const holder = await createUser();
+  await testPool.query(
+    `UPDATE seats SET status = 'HELD', held_by = $2, held_until = now() + $3::interval
+     WHERE section_id = $1 AND row_label = 'A' AND seat_number = 1`,
+    [sectionId, holder.id, interval],
+  );
+}
+
+function seatA1(seatMapBody) {
+  return seatMapBody.data.sections[0].rows[0].seats[0];
+}
+
+test('sơ đồ ghế có VIP (500000) và Thường (200000) thì VIP đứng đầu', async () => {
+  const organizer = await createUser({ role: 'ORGANIZER' });
+  const event = await createEvent(organizer.id, { status: 'PUBLISHED' });
+  const small = { rowCount: 1, seatsPerRow: 1 };
+  await postSection(organizer, event.id, { name: 'Thường', price: 200000, ...small });
+  await postSection(organizer, event.id, { name: 'VIP', price: 500000, ...small });
+
+  const res = await request(app).get(`/api/v1/events/${event.id}/seats`);
+  assert.equal(res.body.data.sections[0].name, 'VIP');
+});
+
+test('ghế HELD có held_until trong quá khứ thì sơ đồ ghế trả về AVAILABLE', async () => {
+  const { event, sectionId } = await publishedEventWithSection();
+  await holdSeatA1(sectionId, '-1 minute');
+
+  const res = await request(app).get(`/api/v1/events/${event.id}/seats`);
+  assert.equal(seatA1(res.body).status, 'AVAILABLE');
+});
+
+test('ghế HELD còn hạn thì sơ đồ ghế trả về HELD', async () => {
+  const { event, sectionId } = await publishedEventWithSection();
+  await holdSeatA1(sectionId, '10 minutes');
+
+  const res = await request(app).get(`/api/v1/events/${event.id}/seats`);
+  assert.equal(seatA1(res.body).status, 'HELD');
+});
+
+test('sơ đồ ghế có ghế HELD thì JSON không chứa chuỗi heldBy', async () => {
+  const { event, sectionId } = await publishedEventWithSection();
+  await holdSeatA1(sectionId, '10 minutes');
+
+  const res = await request(app).get(`/api/v1/events/${event.id}/seats`);
+  assert.equal(res.text.includes('heldBy'), false);
+});

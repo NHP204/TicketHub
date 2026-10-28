@@ -17,6 +17,11 @@ export function createEventsController(eventService) {
       return ok(res, event);
     },
 
+    async getSeatMap(req, res) {
+      const seatMap = await eventService.getSeatMap(req.user ?? null, req.validated.params.id);
+      return ok(res, seatMap);
+    },
+
     async create(req, res) {
       const event = await eventService.create(req.user, req.validated.body);
       return ok(res, event, { status: 201 });

@@ -26,6 +26,7 @@ export function createEventsRouter(eventsController, requireAuth) {
 
   router.get('/events', validate({ query: listEventsQuerySchema }), eventsController.listPublished);
   router.get('/events/:id', optionalAuth(requireAuth), params, eventsController.getById);
+  router.get('/events/:id/seats', optionalAuth(requireAuth), params, eventsController.getSeatMap);
   router.get('/organizer/events', requireOrganizer, eventsController.listMine);
 
   router.post(
