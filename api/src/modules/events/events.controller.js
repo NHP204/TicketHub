@@ -17,6 +17,11 @@ export function createEventsController(eventService) {
       return ok(res, event);
     },
 
+    async getSeatMap(req, res) {
+      const seatMap = await eventService.getSeatMap(req.user ?? null, req.validated.params.id);
+      return ok(res, seatMap);
+    },
+
     async create(req, res) {
       const event = await eventService.create(req.user, req.validated.body);
       return ok(res, event, { status: 201 });
@@ -33,6 +38,14 @@ export function createEventsController(eventService) {
 
     async publish(req, res) {
       const event = await eventService.publish(req.user, req.validated.params.id);
+      return ok(res, event);
+    },
+
+    async uploadBanner(req, res) {
+      const event = await eventService.uploadBanner(req.user, req.validated.params.id, {
+        buffer: req.file.buffer,
+        contentType: req.file.mimetype,
+      });
       return ok(res, event);
     },
 

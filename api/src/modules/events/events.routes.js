@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { authorize } from '../../middlewares/authorize.js';
+import { singleFileUpload } from '../../middlewares/upload.js';
 import { validate } from '../../middlewares/validate.js';
 import {
+  BANNER_IMAGE_TYPES,
+  BANNER_MAX_BYTES,
   createEventSchema,
   eventIdParamsSchema,
   listEventsQuerySchema,
@@ -26,6 +29,7 @@ export function createEventsRouter(eventsController, requireAuth) {
 
   router.get('/events', validate({ query: listEventsQuerySchema }), eventsController.listPublished);
   router.get('/events/:id', optionalAuth(requireAuth), params, eventsController.getById);
+  router.get('/events/:id/seats', optionalAuth(requireAuth), params, eventsController.getSeatMap);
   router.get('/organizer/events', requireOrganizer, eventsController.listMine);
 
   router.post(
@@ -42,5 +46,17 @@ export function createEventsRouter(eventsController, requireAuth) {
   );
   router.post('/events/:id/publish', requireAuth, params, eventsController.publish);
   router.post('/events/:id/cancel', requireAuth, params, eventsController.cancel);
+  // Xác thực trước multer để request chưa đăng nhập không được đọc file vào bộ nhớ.
+  router.post(
+    '/events/:id/banner',
+    requireAuth,
+    params,
+    singleFileUpload({
+      field: 'banner',
+      maxBytes: BANNER_MAX_BYTES,
+      allowedTypes: Object.keys(BANNER_IMAGE_TYPES),
+    }),
+    eventsController.uploadBanner,
+  );
   return router;
 }

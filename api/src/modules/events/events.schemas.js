@@ -32,6 +32,15 @@ export const listEventsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(10),
 });
 
+// Loại ảnh banner được nhận → đuôi file trong storage key.
+export const BANNER_IMAGE_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
+export const BANNER_MAX_BYTES = 2 * 1024 * 1024;
+
 export const eventIdParamsSchema = z.object({
   id: z.uuid(),
 });

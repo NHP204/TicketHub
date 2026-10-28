@@ -7,6 +7,10 @@ const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
+  // Tùy chọn ở đây vì test dùng FakeStorage; ngoài test, SupabaseStorage báo thiếu khi khởi động.
+  SUPABASE_URL: z.url().optional(),
+  SUPABASE_SERVICE_KEY: z.string().min(1).optional(),
+  SUPABASE_BUCKET: z.string().min(1).optional(),
 });
 
 export function loadEnv(source = process.env) {
