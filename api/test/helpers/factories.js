@@ -49,3 +49,44 @@ export async function createEvent(organizerId, overrides = {}) {
   );
   return rows[0];
 }
+
+// Section và ghế của nó; ghế sinh như SeatRepo: hàng A, B, ...; số 1..seatsPerRow.
+// Trả về id section và id ghế theo thứ tự hàng, số.
+export async function createSection(eventId, { name, price, rowCount, seatsPerRow }) {
+  const { rows } = await testPool.query(
+    `INSERT INTO sections (event_id, name, price, row_count, seats_per_row)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
+    [eventId, name, price, rowCount, seatsPerRow],
+  );
+  const sectionId = rows[0].id;
+  const seats = await testPool.query(
+    `INSERT INTO seats (event_id, section_id, row_label, seat_number)
+     SELECT $1, $2, chr(64 + r), s
+     FROM generate_series(1, $3::int) AS r, generate_series(1, $4::int) AS s
+     RETURNING id, row_label, seat_number`,
+    [eventId, sectionId, rowCount, seatsPerRow],
+  );
+  const seatIds = seats.rows
+    .sort((a, b) => a.row_label.localeCompare(b.row_label) || a.seat_number - b.seat_number)
+    .map((s) => s.id);
+  return { id: sectionId, seatIds };
+}
+
+// Như seed P01: sự kiện PUBLISHED, VIP 2 × 5 ghế giá 500000, Thường 5 × 10 ghế giá 200000.
+export async function createSeededEvent(organizerId, overrides = {}) {
+  const event = await createEvent(organizerId, { status: 'PUBLISHED', ...overrides });
+  const vip = await createSection(event.id, {
+    name: 'VIP',
+    price: 500000,
+    rowCount: 2,
+    seatsPerRow: 5,
+  });
+  const regular = await createSection(event.id, {
+    name: 'Thường',
+    price: 200000,
+    rowCount: 5,
+    seatsPerRow: 10,
+  });
+  return { event, vip, regular };
+}
