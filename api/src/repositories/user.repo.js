@@ -22,7 +22,7 @@ export async function findByEmail(db, email) {
   return rows[0] ? toUser(rows[0]) : null;
 }
 
-// Hàm duy nhất trả về passwordHash — chỉ dùng để kiểm tra mật khẩu khi đăng nhập.
+// Chỉ hai hàm *WithPassword trả về passwordHash — dùng để kiểm tra mật khẩu (đăng nhập, đổi mật khẩu).
 export async function findByEmailWithPassword(db, email) {
   const { rows } = await db.query(
     `SELECT ${PUBLIC_COLUMNS}, password_hash FROM users WHERE email = $1`,
@@ -30,6 +30,67 @@ export async function findByEmailWithPassword(db, email) {
   );
   if (!rows[0]) return null;
   return { ...toUser(rows[0]), passwordHash: rows[0].password_hash };
+}
+
+export async function findByIdWithPassword(db, id) {
+  const { rows } = await db.query(
+    `SELECT ${PUBLIC_COLUMNS}, password_hash FROM users WHERE id = $1`,
+    [id],
+  );
+  if (!rows[0]) return null;
+  return { ...toUser(rows[0]), passwordHash: rows[0].password_hash };
+}
+
+// filter.role không có → lấy mọi role. Sắp xếp mới nhất trước, id để thứ tự ổn định giữa các trang.
+export async function findMany(db, { role, limit, offset }) {
+  const { rows } = await db.query(
+    `SELECT ${PUBLIC_COLUMNS}, COUNT(*) OVER () AS total_count
+     FROM users
+     WHERE ($1::varchar IS NULL OR role = $1)
+     ORDER BY created_at DESC, id
+     LIMIT $2 OFFSET $3`,
+    [role ?? null, limit, offset],
+  );
+  const total = rows[0] ? Number(rows[0].total_count) : await countByRole(db, role);
+  return { users: rows.map(toUser), total };
+}
+
+async function countByRole(db, role) {
+  const { rows } = await db.query(
+    `SELECT COUNT(*) AS total FROM users WHERE ($1::varchar IS NULL OR role = $1)`,
+    [role ?? null],
+  );
+  return Number(rows[0].total);
+}
+
+// Whitelist: tên thuộc tính JS → cột DB. Thuộc tính undefined thì không cập nhật.
+const UPDATABLE_COLUMNS = { fullName: 'full_name', role: 'role', isActive: 'is_active' };
+
+// User không tồn tại → null.
+export async function update(db, id, fields) {
+  const sets = [];
+  const values = [id];
+  for (const [key, column] of Object.entries(UPDATABLE_COLUMNS)) {
+    if (fields[key] === undefined) continue;
+    values.push(fields[key]);
+    sets.push(`${column} = $${values.length}`);
+  }
+  if (sets.length === 0) return findById(db, id);
+
+  const { rows } = await db.query(
+    `UPDATE users SET ${sets.join(', ')}, updated_at = now()
+     WHERE id = $1
+     RETURNING ${PUBLIC_COLUMNS}`,
+    values,
+  );
+  return rows[0] ? toUser(rows[0]) : null;
+}
+
+export async function updatePassword(db, id, passwordHash) {
+  await db.query(`UPDATE users SET password_hash = $2, updated_at = now() WHERE id = $1`, [
+    id,
+    passwordHash,
+  ]);
 }
 
 // Email đã tồn tại (kể cả khi hai request đăng ký chạy đồng thời) → trả về null.

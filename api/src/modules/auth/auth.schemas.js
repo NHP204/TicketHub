@@ -1,13 +1,16 @@
 import { z } from 'zod';
 
+// Dùng chung cho đăng ký và đổi mật khẩu (modules/users).
+export const passwordSchema = z
+  .string()
+  .min(8)
+  .max(72)
+  .regex(/\p{L}/u, 'Mật khẩu phải có ít nhất một chữ cái')
+  .regex(/\d/, 'Mật khẩu phải có ít nhất một chữ số');
+
 export const registerSchema = z.object({
   email: z.string().trim().max(255).pipe(z.email()),
-  password: z
-    .string()
-    .min(8)
-    .max(72)
-    .regex(/\p{L}/u, 'Mật khẩu phải có ít nhất một chữ cái')
-    .regex(/\d/, 'Mật khẩu phải có ít nhất một chữ số'),
+  password: passwordSchema,
   fullName: z.string().trim().min(2).max(100),
 });
 
