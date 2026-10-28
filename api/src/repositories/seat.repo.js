@@ -52,3 +52,47 @@ export async function countHeldOrBooked(db, sectionId) {
   );
   return Number(rows[0].total);
 }
+
+function toHoldSeat(row) {
+  return {
+    id: row.id,
+    sectionId: row.section_id,
+    section: row.name,
+    row: row.row_label,
+    number: row.seat_number,
+    price: row.price,
+    status: row.status,
+    available: row.available,
+  };
+}
+
+// Khóa các ghế của event đến hết transaction. ORDER BY s.id bắt buộc: mọi transaction khóa
+// theo cùng một thứ tự nên không deadlock. Id sai hoặc ghế của event khác không có trong kết quả.
+// available tính bằng now() của PostgreSQL: AVAILABLE, hoặc HELD đã quá held_until.
+export async function findForHold(db, eventId, seatIds) {
+  const { rows } = await db.query(
+    `SELECT s.*, sec.name, sec.price,
+            (s.status = 'AVAILABLE' OR (s.status = 'HELD' AND s.held_until < now())) AS available
+     FROM seats s
+     JOIN sections sec ON sec.id = s.section_id
+     WHERE s.id = ANY($1) AND s.event_id = $2
+     ORDER BY s.id
+     FOR UPDATE OF s`,
+    [seatIds, eventId],
+  );
+  return rows.map(toHoldSeat);
+}
+
+// Chuyển ghế sang HELD đến now() + holdMinutes. now() cố định trong transaction nên mọi ghế
+// có cùng held_until; trả về giá trị đó.
+export async function hold(db, seatIds, userId, holdMinutes) {
+  const { rows } = await db.query(
+    `UPDATE seats
+     SET status = 'HELD', held_by = $2, held_until = now() + make_interval(mins => $3),
+         updated_at = now()
+     WHERE id = ANY($1)
+     RETURNING held_until`,
+    [seatIds, userId, holdMinutes],
+  );
+  return rows[0].held_until;
+}
