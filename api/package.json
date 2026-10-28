@@ -12,7 +12,11 @@
     "test:unit": "node --test \"test/unit/**/*.test.js\"",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "migrate": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js up",
+    "migrate:down": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js down",
+    "migrate:test": "node --env-file=.env.test node_modules/node-pg-migrate/bin/node-pg-migrate.js up",
+    "seed": "node --env-file-if-exists=.env seeds/seed.js"
   },
   "keywords": [],
   "author": "",
