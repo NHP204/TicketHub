@@ -6,6 +6,7 @@ import * as refreshTokenRepo from './repositories/refresh-token.repo.js';
 import * as eventRepo from './repositories/event.repo.js';
 import * as sectionRepo from './repositories/section.repo.js';
 import * as seatRepo from './repositories/seat.repo.js';
+import * as bookingRepo from './repositories/booking.repo.js';
 import { FakeStorage } from './services/storage/fake-storage.js';
 import { SupabaseStorage } from './services/storage/supabase-storage.js';
 import { authenticate } from './middlewares/authenticate.js';
@@ -22,6 +23,9 @@ import { createEventsRouter } from './modules/events/events.routes.js';
 import { SectionService } from './modules/sections/sections.service.js';
 import { createSectionsController } from './modules/sections/sections.controller.js';
 import { createSectionsRouter } from './modules/sections/sections.routes.js';
+import { BookingService } from './modules/bookings/bookings.service.js';
+import { createBookingsController } from './modules/bookings/bookings.controller.js';
+import { createBookingsRouter } from './modules/bookings/bookings.routes.js';
 
 const AUTH_RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
 
@@ -51,6 +55,7 @@ export function buildContainer({ env, pool, rateLimitEnabled = env.NODE_ENV !== 
         });
   const eventService = new EventService({ pool, eventRepo, seatRepo, storage });
   const sectionService = new SectionService({ pool, eventRepo, sectionRepo, seatRepo });
+  const bookingService = new BookingService({ pool, bookingRepo, seatRepo });
   const cookieOptions = refreshCookieOptions({
     nodeEnv: env.NODE_ENV,
     maxAgeMs: jwtUtil.REFRESH_TOKEN_TTL_MS,
@@ -67,6 +72,7 @@ export function buildContainer({ env, pool, rateLimitEnabled = env.NODE_ENV !== 
     createUsersRouter(createUsersController(usersService), requireAuth),
     createEventsRouter(createEventsController(eventService), requireAuth),
     createSectionsRouter(createSectionsController(sectionService), requireAuth),
+    createBookingsRouter(createBookingsController(bookingService), requireAuth),
   ];
 
   return { logger, routers };
