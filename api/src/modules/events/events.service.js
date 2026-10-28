@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { withTransaction } from '../../config/db.js';
 import {
   ConflictError,
@@ -5,6 +6,7 @@ import {
   NotFoundError,
   ValidationError,
 } from '../../errors/app-error.js';
+import { BANNER_IMAGE_TYPES } from './events.schemas.js';
 
 function eventNotFound() {
   return new NotFoundError('EVENT_NOT_FOUND', 'Không tìm thấy sự kiện');
@@ -24,10 +26,12 @@ function isOwner(event, actor) {
 
 // actor = { id, role } — người thực hiện thao tác, lấy từ access token.
 export class EventService {
-  constructor({ pool, eventRepo, seatRepo, now = () => new Date() }) {
+  // storage: { upload({ key, buffer, contentType }) → Promise<{ url }> }.
+  constructor({ pool, eventRepo, seatRepo, storage, now = () => new Date() }) {
     this.pool = pool;
     this.eventRepo = eventRepo;
     this.seatRepo = seatRepo;
+    this.storage = storage;
     this.now = now;
   }
 
@@ -126,6 +130,19 @@ export class EventService {
       }
       return this.eventRepo.updateStatus(client, eventId, 'PUBLISHED');
     });
+  }
+
+  // Chỉ chủ sự kiện; sự kiện CANCELLED không đổi banner được. Kiểm tra quyền trước khi upload,
+  // và không giữ transaction trong lúc gọi storage qua mạng. File banner cũ không bị xóa.
+  async uploadBanner(actor, eventId, { buffer, contentType }) {
+    const event = await this.eventRepo.findById(this.pool, eventId);
+    if (!event) throw eventNotFound();
+    if (!isOwner(event, actor)) throw notEventOwner();
+    if (event.status === 'CANCELLED') throw eventCancelled();
+
+    const key = `events/${eventId}/${randomUUID()}.${BANNER_IMAGE_TYPES[contentType]}`;
+    const { url } = await this.storage.upload({ key, buffer, contentType });
+    return this.eventRepo.updateBanner(this.pool, eventId, url);
   }
 
   // Chủ sự kiện hoặc admin.

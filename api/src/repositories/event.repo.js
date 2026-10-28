@@ -128,6 +128,16 @@ export async function updateStatus(db, id, status) {
   return rows[0] ? toEvent(rows[0]) : null;
 }
 
+export async function updateBanner(db, id, bannerUrl) {
+  const { rows } = await db.query(
+    `UPDATE events SET banner_url = $2, updated_at = now()
+     WHERE id = $1
+     RETURNING ${COLUMNS}`,
+    [id, bannerUrl],
+  );
+  return rows[0] ? toEvent(rows[0]) : null;
+}
+
 export async function countSections(db, eventId) {
   const { rows } = await db.query(`SELECT COUNT(*) AS total FROM sections WHERE event_id = $1`, [
     eventId,

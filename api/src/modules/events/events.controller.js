@@ -41,6 +41,14 @@ export function createEventsController(eventService) {
       return ok(res, event);
     },
 
+    async uploadBanner(req, res) {
+      const event = await eventService.uploadBanner(req.user, req.validated.params.id, {
+        buffer: req.file.buffer,
+        contentType: req.file.mimetype,
+      });
+      return ok(res, event);
+    },
+
     async cancel(req, res) {
       const event = await eventService.cancel(req.user, req.validated.params.id);
       return ok(res, event);
