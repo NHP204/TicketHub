@@ -44,6 +44,33 @@ export class EventService {
     }
   }
 
+  async listPublished({ q, from, to, sort, order, page, limit }) {
+    const { events, total } = await this.eventRepo.findPublished(this.pool, {
+      q,
+      from,
+      to,
+      sort,
+      order,
+      limit,
+      offset: (page - 1) * limit,
+    });
+    return { events, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async listMine(actor) {
+    return this.eventRepo.findByOrganizer(this.pool, actor.id);
+  }
+
+  // actor có thể null (khách chưa đăng nhập). DRAFT/CANCELLED chỉ chủ sự kiện hoặc admin xem
+  // được; người khác nhận 404 để không lộ sự tồn tại của sự kiện.
+  async getById(actor, eventId) {
+    const event = await this.eventRepo.findById(this.pool, eventId);
+    if (!event) throw eventNotFound();
+    if (event.status === 'PUBLISHED') return event;
+    if (actor && (isOwner(event, actor) || actor.role === 'ADMIN')) return event;
+    throw eventNotFound();
+  }
+
   async create(actor, { title, description, venue, startTime, endTime }) {
     this.assertValidSchedule(startTime, endTime);
     return this.eventRepo.create(this.pool, {

@@ -28,6 +28,56 @@ export async function findByIdForUpdate(db, id) {
   return rows[0] ? toEvent(rows[0]) : null;
 }
 
+// Whitelist: giá trị sort từ query → cột DB. Không bao giờ đưa input thẳng vào ORDER BY.
+const SORT_COLUMNS = { startTime: 'start_time', createdAt: 'created_at', title: 'title' };
+const ORDER_DIRECTIONS = { asc: 'ASC', desc: 'DESC' };
+
+// Thoát ký tự đặc biệt của LIKE để input như "%" chỉ khớp chính nó.
+function escapeLike(value) {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+// Chỉ sự kiện PUBLISHED. q tìm không phân biệt hoa thường trong title và venue;
+// from/to lọc theo start_time. Thêm id vào ORDER BY để thứ tự ổn định giữa các trang.
+export async function findPublished(db, { q, from, to, sort, order, limit, offset }) {
+  const column = SORT_COLUMNS[sort];
+  const direction = ORDER_DIRECTIONS[order];
+  if (!column || !direction) throw new Error(`Invalid sort: ${sort} ${order}`);
+
+  const pattern = q ? `%${escapeLike(q)}%` : null;
+  const filterValues = [pattern, from ?? null, to ?? null];
+  const where = `status = 'PUBLISHED'
+       AND ($1::text IS NULL OR title ILIKE $1 ESCAPE '\\' OR venue ILIKE $1 ESCAPE '\\')
+       AND ($2::timestamptz IS NULL OR start_time >= $2)
+       AND ($3::timestamptz IS NULL OR start_time <= $3)`;
+
+  const { rows } = await db.query(
+    `SELECT ${COLUMNS}, COUNT(*) OVER () AS total_count
+     FROM events
+     WHERE ${where}
+     ORDER BY ${column} ${direction}, id
+     LIMIT $4 OFFSET $5`,
+    [...filterValues, limit, offset],
+  );
+  // Trang vượt quá dữ liệu → không có dòng nào mang total_count, phải đếm riêng.
+  const total = rows[0]
+    ? Number(rows[0].total_count)
+    : Number(
+        (await db.query(`SELECT COUNT(*) AS total FROM events WHERE ${where}`, filterValues))
+          .rows[0].total,
+      );
+  return { events: rows.map(toEvent), total };
+}
+
+// Mọi trạng thái, sự kiện mới tạo trước.
+export async function findByOrganizer(db, organizerId) {
+  const { rows } = await db.query(
+    `SELECT ${COLUMNS} FROM events WHERE organizer_id = $1 ORDER BY created_at DESC, id`,
+    [organizerId],
+  );
+  return rows.map(toEvent);
+}
+
 // Sự kiện mới luôn ở trạng thái DRAFT (mặc định của cột status).
 export async function create(db, { organizerId, title, description, venue, startTime, endTime }) {
   const { rows } = await db.query(
