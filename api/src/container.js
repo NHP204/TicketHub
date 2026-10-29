@@ -9,6 +9,7 @@ import * as seatRepo from './repositories/seat.repo.js';
 import * as bookingRepo from './repositories/booking.repo.js';
 import * as paymentRepo from './repositories/payment.repo.js';
 import * as ticketRepo from './repositories/ticket.repo.js';
+import * as statsRepo from './repositories/stats.repo.js';
 import { FakeStorage } from './services/storage/fake-storage.js';
 import { SupabaseStorage } from './services/storage/supabase-storage.js';
 import { authenticate } from './middlewares/authenticate.js';
@@ -35,6 +36,9 @@ import { createPaymentsRouter } from './modules/payments/payments.routes.js';
 import { TicketService } from './modules/tickets/tickets.service.js';
 import { createTicketsController } from './modules/tickets/tickets.controller.js';
 import { createTicketsRouter } from './modules/tickets/tickets.routes.js';
+import { StatsService } from './modules/stats/stats.service.js';
+import { createStatsController } from './modules/stats/stats.controller.js';
+import { createStatsRouter } from './modules/stats/stats.routes.js';
 
 const AUTH_RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
 
@@ -80,6 +84,7 @@ export function buildContainer({
     ticketRepo,
   });
   const ticketService = new TicketService({ pool, ticketRepo });
+  const statsService = new StatsService({ pool, eventRepo, statsRepo });
   const cookieOptions = refreshCookieOptions({
     nodeEnv: env.NODE_ENV,
     maxAgeMs: jwtUtil.REFRESH_TOKEN_TTL_MS,
@@ -99,6 +104,7 @@ export function buildContainer({
     createBookingsRouter(createBookingsController(bookingService), requireAuth),
     createPaymentsRouter(createPaymentsController(paymentService), requireAuth),
     createTicketsRouter(createTicketsController(ticketService), requireAuth),
+    createStatsRouter(createStatsController(statsService), requireAuth),
   ];
 
   return { logger, routers };
