@@ -16,6 +16,12 @@ export function createApp(deps = {}) {
   const { corsOrigin, logger = createLogger(process.env.NODE_ENV), routers = [] } = deps;
   const app = express();
 
+  // Production: request đi qua 2 proxy (rewrite của Vercel rồi proxy của Render),
+  // nên tin 2 hop để req.ip và rate limit lấy đúng IP client.
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 2);
+  }
+
   app.use(helmet());
   app.use(cors({ origin: corsOrigin, credentials: true }));
   app.use(express.json({ limit: '100kb' }));
