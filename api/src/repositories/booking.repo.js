@@ -45,3 +45,31 @@ export async function createItems(db, bookingId, items) {
     [bookingId, items.map((i) => i.seatId), items.map((i) => i.price)],
   );
 }
+
+// Một câu lệnh: booking PENDING quá expires_at → EXPIRED, rồi trả các ghế HELD của chúng về
+// AVAILABLE. Chỉ trả ghế còn đang giữ cho chính booking đó (held_by là chủ booking và
+// held_until không sau expires_at), để không cướp ghế người khác đã giữ lại sau khi hết hạn.
+// Ghế BOOKED và booking PAID không khớp điều kiện nên không bị đụng.
+export async function expireAndReleaseSeats(db) {
+  const { rows } = await db.query(
+    `WITH expired AS (
+       UPDATE bookings
+       SET status = 'EXPIRED', updated_at = now()
+       WHERE status = 'PENDING' AND expires_at < now()
+       RETURNING id, user_id, expires_at
+     ), released AS (
+       UPDATE seats s
+       SET status = 'AVAILABLE', held_by = NULL, held_until = NULL, updated_at = now()
+       FROM expired e
+       JOIN booking_items bi ON bi.booking_id = e.id
+       WHERE s.id = bi.seat_id
+         AND s.status = 'HELD'
+         AND s.held_by = e.user_id
+         AND s.held_until <= e.expires_at
+       RETURNING s.id
+     )
+     SELECT (SELECT COUNT(*) FROM expired) AS bookings,
+            (SELECT COUNT(*) FROM released) AS seats`,
+  );
+  return { bookings: Number(rows[0].bookings), seats: Number(rows[0].seats) };
+}
