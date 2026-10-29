@@ -13,11 +13,11 @@
       "Bash(git log:*)"
     ],
     "deny": [
-      "Read(./**/.env)",
-      "Read(./**/.env.production)",
-      "Edit(./CLAUDE.md)",
-      "Edit(./docs/**)",
-      "Edit(./.claude/**)",
+      "Read(**/.env)",
+      "Read(**/.env.production)",
+      "Edit(/CLAUDE.md)",
+      "Edit(/docs/**)",
+      "Edit(/.claude/**)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(git reset:*)",
