@@ -10,6 +10,9 @@ import MyTicketsPage from './pages/MyTicketsPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import TicketPage from './pages/TicketPage.jsx';
+import DashboardPage from './pages/organizer/DashboardPage.jsx';
+import EventFormPage from './pages/organizer/EventFormPage.jsx';
+import EventManagePage from './pages/organizer/EventManagePage.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +29,14 @@ export const router = createBrowserRouter([
           { path: '/bookings', element: <MyBookingsPage /> },
           { path: '/tickets', element: <MyTicketsPage /> },
           { path: '/tickets/:code', element: <TicketPage /> },
+        ],
+      },
+      {
+        element: <ProtectedRoute roles={['ORGANIZER']} />,
+        children: [
+          { path: '/organizer', element: <DashboardPage /> },
+          { path: '/organizer/events/new', element: <EventFormPage /> },
+          { path: '/organizer/events/:id', element: <EventManagePage /> },
         ],
       },
       { path: '*', element: <NotFoundPage /> },
