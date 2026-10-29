@@ -114,3 +114,15 @@ export async function releaseForBooking(db, { bookingId, userId, expiresAt }) {
   );
   return result.rowCount;
 }
+
+// Ghế của booking đã thanh toán → BOOKED, bỏ thông tin giữ ghế. Trả về số ghế đã đổi.
+export async function bookForBooking(db, bookingId) {
+  const result = await db.query(
+    `UPDATE seats s
+     SET status = 'BOOKED', held_by = NULL, held_until = NULL, updated_at = now()
+     FROM booking_items bi
+     WHERE bi.booking_id = $1 AND s.id = bi.seat_id`,
+    [bookingId],
+  );
+  return result.rowCount;
+}

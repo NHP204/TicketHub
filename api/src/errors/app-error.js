@@ -37,3 +37,9 @@ export class ConflictError extends AppError {
     super(409, code, message, details);
   }
 }
+
+export class PaymentRequiredError extends AppError {
+  constructor(code = 'PAYMENT_REQUIRED', message = 'Payment required', details) {
+    super(402, code, message, details);
+  }
+}

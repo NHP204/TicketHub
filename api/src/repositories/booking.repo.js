@@ -87,6 +87,17 @@ export async function findByIdForUpdate(db, id) {
   return rows[0] ? toBooking(rows[0]) : null;
 }
 
+// Khóa booking cho thanh toán. expired so bằng now() của PostgreSQL, cùng đồng hồ với job hết hạn.
+export async function findForPaymentForUpdate(db, id) {
+  const { rows } = await db.query(
+    `SELECT ${COLUMNS}, expires_at <= now() AS expired
+     FROM bookings WHERE id = $1
+     FOR UPDATE`,
+    [id],
+  );
+  return rows[0] ? { ...toBooking(rows[0]), expired: rows[0].expired } : null;
+}
+
 // Booking của user, mới tạo trước; status null = mọi trạng thái.
 // Thêm id vào ORDER BY để thứ tự ổn định giữa các trang.
 export async function findByUser(db, userId, { status, limit, offset }) {
@@ -111,10 +122,10 @@ export async function findByUser(db, userId, { status, limit, offset }) {
   return { bookings: rows.map(toBooking), total };
 }
 
-// Ghế của booking, cùng dạng items lúc giữ ghế. price là giá tại thời điểm giữ.
-export async function findItems(db, bookingId) {
+// Ghế của booking theo thứ tự hiển thị; price là giá tại thời điểm giữ.
+async function queryItems(db, bookingId) {
   const { rows } = await db.query(
-    `SELECT bi.seat_id, sec.name, s.row_label, s.seat_number, bi.price
+    `SELECT bi.id, bi.seat_id, sec.name, s.row_label, s.seat_number, bi.price
      FROM booking_items bi
      JOIN seats s ON s.id = bi.seat_id
      JOIN sections sec ON sec.id = s.section_id
@@ -122,12 +133,29 @@ export async function findItems(db, bookingId) {
      ORDER BY sec.price DESC, sec.name, s.row_label, s.seat_number`,
     [bookingId],
   );
+  return rows;
+}
+
+// Ghế của booking, cùng dạng items lúc giữ ghế.
+export async function findItems(db, bookingId) {
+  const rows = await queryItems(db, bookingId);
   return rows.map((row) => ({
     seatId: row.seat_id,
     section: row.name,
     row: row.row_label,
     number: row.seat_number,
     price: row.price,
+  }));
+}
+
+// Như findItems nhưng kèm id của booking_item, để sinh vé cho từng item.
+export async function findItemsForTickets(db, bookingId) {
+  const rows = await queryItems(db, bookingId);
+  return rows.map((row) => ({
+    id: row.id,
+    section: row.name,
+    row: row.row_label,
+    number: row.seat_number,
   }));
 }
 
