@@ -22,16 +22,16 @@ async function holdTwoSeats() {
   return { booking, seatIds };
 }
 
-// Lùi expires_at của booking và held_until của ghế về cùng thời điểm 1 phút trước,
-// như thể booking được tạo 11 phút trước.
+// Lùi expires_at của booking và held_until của ghế cùng 11 phút: hết hạn khoảng 1 phút trước,
+// giữ nguyên độ lệch thật giữa hai cột như lúc service P07 tạo ra.
 async function moveToPast(bookingId) {
   await testPool.query(
     `WITH b AS (
-       UPDATE bookings SET expires_at = now() - interval '1 minute'
+       UPDATE bookings SET expires_at = expires_at - interval '11 minutes'
        WHERE id = $1
-       RETURNING id, expires_at
+       RETURNING id
      )
-     UPDATE seats s SET held_until = b.expires_at
+     UPDATE seats s SET held_until = held_until - interval '11 minutes'
      FROM b JOIN booking_items bi ON bi.booking_id = b.id
      WHERE s.id = bi.seat_id AND s.status = 'HELD'`,
     [bookingId],

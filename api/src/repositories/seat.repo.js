@@ -96,3 +96,21 @@ export async function hold(db, seatIds, userId, holdMinutes) {
   );
   return rows[0].held_until;
 }
+
+// Trả các ghế HELD của booking về AVAILABLE. Như job hết hạn: chỉ ghế còn giữ cho chính booking
+// này (held_by là chủ booking, held_until không sau expires_at). held_until cắt về mili giây
+// vì expires_at chỉ có độ chính xác của Date trong JS. Trả về số ghế đã trả.
+export async function releaseForBooking(db, { bookingId, userId, expiresAt }) {
+  const result = await db.query(
+    `UPDATE seats s
+     SET status = 'AVAILABLE', held_by = NULL, held_until = NULL, updated_at = now()
+     FROM booking_items bi
+     WHERE bi.booking_id = $1
+       AND s.id = bi.seat_id
+       AND s.status = 'HELD'
+       AND s.held_by = $2
+       AND date_trunc('milliseconds', s.held_until) <= $3`,
+    [bookingId, userId, expiresAt],
+  );
+  return result.rowCount;
+}

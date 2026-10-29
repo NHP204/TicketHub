@@ -2,6 +2,10 @@ import { withTransaction } from '../../config/db.js';
 import { HOLD_MINUTES } from '../../config/constants.js';
 import { ConflictError, NotFoundError, ValidationError } from '../../errors/app-error.js';
 
+function bookingNotFound() {
+  return new NotFoundError('BOOKING_NOT_FOUND', 'Không tìm thấy booking');
+}
+
 // actor = { id, role } — người thực hiện thao tác, lấy từ access token.
 // Mọi so sánh thời gian chạy bằng now() của PostgreSQL trong repository, không dùng đồng hồ Node.
 export class BookingService {
@@ -60,6 +64,44 @@ export class BookingService {
         expiresAt: booking.expiresAt,
         items,
       };
+    });
+  }
+
+  async listMine(actor, { status, page, limit }) {
+    const { bookings, total } = await this.bookingRepo.findByUser(this.pool, actor.id, {
+      status,
+      limit,
+      offset: (page - 1) * limit,
+    });
+    return { bookings, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  // Chủ booking hoặc admin xem được; người khác nhận 404 để không lộ booking có tồn tại.
+  async getById(actor, bookingId) {
+    const booking = await this.bookingRepo.findById(this.pool, bookingId);
+    if (!booking || (booking.userId !== actor.id && actor.role !== 'ADMIN')) {
+      throw bookingNotFound();
+    }
+    const items = await this.bookingRepo.findItems(this.pool, bookingId);
+    return { ...booking, items };
+  }
+
+  // Chỉ chủ booking hủy được, và chỉ khi PENDING. Khóa booking (FOR UPDATE) nên hủy không chen
+  // ngang với job hết hạn: bên chạy sau thấy status đã đổi.
+  async cancel(actor, bookingId) {
+    return withTransaction(this.pool, async (client) => {
+      const booking = await this.bookingRepo.findByIdForUpdate(client, bookingId);
+      if (!booking || booking.userId !== actor.id) throw bookingNotFound();
+      if (booking.status !== 'PENDING') {
+        throw new ConflictError('BOOKING_NOT_PENDING', 'Chỉ hủy được booking đang chờ thanh toán');
+      }
+
+      await this.seatRepo.releaseForBooking(client, {
+        bookingId,
+        userId: booking.userId,
+        expiresAt: booking.expiresAt,
+      });
+      return this.bookingRepo.updateStatus(client, bookingId, 'CANCELLED');
     });
   }
 }
