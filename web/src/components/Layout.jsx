@@ -1,4 +1,6 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/use-auth.js';
 
 const currentYear = new Date().getFullYear();
 
@@ -8,6 +10,20 @@ const navLinkClass = ({ isActive }) =>
   }`;
 
 export default function Layout() {
+  const { user, status, logout } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+      navigate('/', { replace: true });
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
@@ -19,12 +35,31 @@ export default function Layout() {
             <NavLink to="/" end className={navLinkClass}>
               Sự kiện
             </NavLink>
-            <NavLink to="/login" className={navLinkClass}>
-              Đăng nhập
-            </NavLink>
-            <NavLink to="/register" className={navLinkClass}>
-              Đăng ký
-            </NavLink>
+            {status === 'authenticated' && (
+              <>
+                <span className="px-3 py-2 text-sm font-medium text-slate-700">
+                  {user.fullName}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-60"
+                >
+                  Đăng xuất
+                </button>
+              </>
+            )}
+            {status === 'guest' && (
+              <>
+                <NavLink to="/login" className={navLinkClass}>
+                  Đăng nhập
+                </NavLink>
+                <NavLink to="/register" className={navLinkClass}>
+                  Đăng ký
+                </NavLink>
+              </>
+            )}
           </nav>
         </div>
       </header>
