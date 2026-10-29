@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
+test
+coverage
+scripts
+.prettierrc
+.prettierignore
+eslint.config.js
+Dockerfile
+.dockerignore

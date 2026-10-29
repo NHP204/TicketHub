@@ -32,5 +32,19 @@ services:
       timeout: 5s
       retries: 10
 
+  api:
+    build: ./api
+    ports:
+      - "4000:4000"
+    env_file:
+      - api/.env
+    environment:
+      # Trong container, localhost là chính container api; DB nằm ở service "db".
+      DATABASE_URL: postgres://tickethub:tickethub@db:5432/tickethub
+      PORT: 4000
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   db_data:
