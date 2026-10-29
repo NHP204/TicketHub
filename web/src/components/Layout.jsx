@@ -37,6 +37,12 @@ export default function Layout() {
             </NavLink>
             {status === 'authenticated' && (
               <>
+                <NavLink to="/bookings" className={navLinkClass}>
+                  Đặt chỗ
+                </NavLink>
+                <NavLink to="/tickets" className={navLinkClass}>
+                  Vé của tôi
+                </NavLink>
                 <span className="px-3 py-2 text-sm font-medium text-slate-700">
                   {user.fullName}
                 </span>
