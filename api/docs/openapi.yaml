@@ -1,0 +1,1184 @@
+openapi: 3.0.3
+info:
+  title: TicketHub API
+  version: 1.0.0
+  description: |
+    API đặt vé sự kiện. Mọi response thành công có dạng `{ success: true, data, meta? }`,
+    lỗi có dạng `{ success: false, error: { code, message, details? } }`.
+    Tiền là số nguyên đồng; thời gian là chuỗi ISO 8601.
+
+    Thử nhanh: gọi `POST /auth/login`, chép `data.accessToken`, bấm **Authorize** và dán vào `bearerAuth`.
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Admin
+  - name: Events
+  - name: Sections
+  - name: Bookings
+  - name: Payments
+  - name: Tickets
+  - name: Stats
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Kiểm tra API còn sống
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      status: { type: string, example: ok }
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Đăng ký tài khoản (role USER)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterInput' }
+      responses:
+        '201': { $ref: '#/components/responses/UserOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '409':
+          description: EMAIL_TAKEN — email đã được sử dụng
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Đăng nhập
+      description: Trả access token trong body và đặt cookie httpOnly `refresh_token` (path `/api/v1/auth`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginInput' }
+      responses:
+        '200': { $ref: '#/components/responses/SessionOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401':
+          description: INVALID_CREDENTIALS — email hoặc mật khẩu không đúng
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { $ref: '#/components/responses/AccountDisabled' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Xoay vòng refresh token, cấp access token mới
+      security:
+        - refreshCookie: []
+      responses:
+        '200': { $ref: '#/components/responses/SessionOk' }
+        '401':
+          description: |
+            INVALID_REFRESH_TOKEN — thiếu, sai hoặc hết hạn.
+            TOKEN_REUSED — token đã bị thu hồi mà vẫn được gửi lên; mọi phiên của user bị thu hồi.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { $ref: '#/components/responses/AccountDisabled' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Đăng xuất (thu hồi refresh token, xóa cookie)
+      description: Không có token hoặc token đã thu hồi vẫn trả 204.
+      security:
+        - refreshCookie: []
+      responses:
+        '204':
+          description: Đã đăng xuất
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Thông tin người dùng hiện tại
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { $ref: '#/components/responses/UserOk' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Users]
+      summary: Sửa tên hoặc đổi mật khẩu
+      description: Đổi mật khẩu thành công thì mọi refresh token của user bị thu hồi.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateMeInput' }
+      responses:
+        '200': { $ref: '#/components/responses/UserOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401':
+          description: |
+            UNAUTHORIZED / TOKEN_EXPIRED — access token thiếu, sai hoặc hết hạn.
+            INVALID_CREDENTIALS — mật khẩu hiện tại không đúng.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Danh sách người dùng (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/Role' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
+
+  /admin/users/{id}:
+    patch:
+      tags: [Admin]
+      summary: Đổi role hoặc khóa/mở tài khoản (admin)
+      description: Khóa tài khoản thì mọi refresh token của user đó bị thu hồi.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminUpdateUserInput' }
+      responses:
+        '200': { $ref: '#/components/responses/UserOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: CANNOT_MODIFY_SELF — admin không được tự sửa role hoặc khóa chính mình
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /events:
+    get:
+      tags: [Events]
+      summary: Danh sách sự kiện đã publish
+      parameters:
+        - name: q
+          in: query
+          description: Tìm trong tiêu đề
+          schema: { type: string, maxLength: 100 }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [startTime, createdAt, title], default: startTime }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc], default: asc }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Event' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+    post:
+      tags: [Events]
+      summary: Tạo sự kiện (organizer, trạng thái DRAFT)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateEventInput' }
+      responses:
+        '201': { $ref: '#/components/responses/EventOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
+
+  /events/{id}:
+    get:
+      tags: [Events]
+      summary: Chi tiết sự kiện
+      description: Sự kiện DRAFT/CANCELLED chỉ chủ sự kiện hoặc admin xem được, người khác nhận 404.
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200': { $ref: '#/components/responses/EventOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+    patch:
+      tags: [Events]
+      summary: Sửa sự kiện (chủ sự kiện)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateEventInput' }
+      responses:
+        '200': { $ref: '#/components/responses/EventOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NotEventOwner' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+        '409': { $ref: '#/components/responses/EventCancelled' }
+
+  /events/{id}/seats:
+    get:
+      tags: [Events]
+      summary: Sơ đồ ghế của sự kiện
+      description: Ai xem được sự kiện thì xem được sơ đồ ghế.
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: '#/components/schemas/SeatMap' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+
+  /events/{id}/publish:
+    post:
+      tags: [Events]
+      summary: Publish sự kiện (chủ sự kiện, từ DRAFT, cần ít nhất một khu vực)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200': { $ref: '#/components/responses/EventOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NotEventOwner' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+        '409':
+          description: |
+            EVENT_CANCELLED — sự kiện đã bị hủy.
+            CONFLICT — sự kiện không ở trạng thái DRAFT.
+            EVENT_HAS_NO_SECTIONS — sự kiện chưa có khu vực ghế.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /events/{id}/cancel:
+    post:
+      tags: [Events]
+      summary: Hủy sự kiện (chủ sự kiện hoặc admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200': { $ref: '#/components/responses/EventOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NotEventOwner' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+        '409': { $ref: '#/components/responses/EventCancelled' }
+
+  /events/{id}/banner:
+    post:
+      tags: [Events]
+      summary: Upload ảnh banner (chủ sự kiện)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [banner]
+              properties:
+                banner:
+                  type: string
+                  format: binary
+                  description: Ảnh JPEG, PNG hoặc WebP, tối đa 2 MB
+      responses:
+        '200': { $ref: '#/components/responses/EventOk' }
+        '400':
+          description: |
+            VALIDATION_ERROR — id sai hoặc thiếu file.
+            FILE_TOO_LARGE — file vượt quá 2 MB.
+            INVALID_FILE_TYPE — không phải image/jpeg, image/png, image/webp.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NotEventOwner' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+        '409': { $ref: '#/components/responses/EventCancelled' }
+
+  /organizer/events:
+    get:
+      tags: [Events]
+      summary: Sự kiện của organizer hiện tại (mọi trạng thái)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Event' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
+
+  /events/{id}/sections:
+    post:
+      tags: [Sections]
+      summary: Tạo khu vực ghế và sinh ghế (chủ sự kiện)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSectionInput' }
+      responses:
+        '201': { $ref: '#/components/responses/SectionOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NotEventOwner' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+        '409':
+          description: |
+            EVENT_CANCELLED — sự kiện đã bị hủy.
+            SECTION_NAME_TAKEN — tên khu vực đã tồn tại trong sự kiện.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /sections/{id}:
+    patch:
+      tags: [Sections]
+      summary: Sửa tên hoặc giá khu vực (chủ sự kiện)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateSectionInput' }
+      responses:
+        '200': { $ref: '#/components/responses/SectionOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NotEventOwner' }
+        '404': { $ref: '#/components/responses/SectionNotFound' }
+        '409':
+          description: |
+            EVENT_CANCELLED — sự kiện đã bị hủy.
+            SECTION_NAME_TAKEN — tên khu vực đã tồn tại trong sự kiện.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      tags: [Sections]
+      summary: Xóa khu vực (chủ sự kiện, khi không còn ghế HELD/BOOKED)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200':
+          description: Đã xóa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { type: object, nullable: true, example: null }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NotEventOwner' }
+        '404': { $ref: '#/components/responses/SectionNotFound' }
+        '409':
+          description: |
+            EVENT_CANCELLED — sự kiện đã bị hủy.
+            SECTION_HAS_BOOKINGS — khu vực có ghế đang được giữ hoặc đã đặt.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /bookings:
+    post:
+      tags: [Bookings]
+      summary: Giữ ghế 10 phút, tạo booking PENDING
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HoldSeatsInput' }
+      responses:
+        '201':
+          description: Đã giữ ghế
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      id: { type: string, format: uuid }
+                      status: { type: string, example: PENDING }
+                      eventId: { type: string, format: uuid }
+                      totalAmount: { type: integer, example: 1000000 }
+                      expiresAt: { type: string, format: date-time }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/BookingItem' }
+        '400':
+          description: |
+            VALIDATION_ERROR / INVALID_JSON — dữ liệu gửi lên không hợp lệ.
+            INVALID_SEATS — có ghế không thuộc sự kiện này.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+        '409':
+          description: |
+            EVENT_ALREADY_STARTED — sự kiện đã bắt đầu.
+            SEAT_NOT_AVAILABLE — có ghế không còn trống; `details` là mảng id các ghế đó.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /bookings/me:
+    get:
+      tags: [Bookings]
+      summary: Lịch sử booking của tôi (mới nhất trước)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/BookingStatus' }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Booking' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /bookings/{id}:
+    get:
+      tags: [Bookings]
+      summary: Chi tiết booking kèm ghế (chủ booking hoặc admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    allOf:
+                      - { $ref: '#/components/schemas/Booking' }
+                      - type: object
+                        properties:
+                          items:
+                            type: array
+                            items: { $ref: '#/components/schemas/BookingItem' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/BookingNotFound' }
+
+  /bookings/{id}/cancel:
+    post:
+      tags: [Bookings]
+      summary: Hủy booking PENDING của tôi, trả ghế
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200': { $ref: '#/components/responses/BookingOk' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/BookingNotFound' }
+        '409':
+          description: BOOKING_NOT_PENDING — chỉ hủy được booking đang chờ thanh toán
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /bookings/{id}/pay:
+    post:
+      tags: [Payments]
+      summary: Thanh toán booking PENDING của tôi, phát hành vé
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200':
+          description: Đã thanh toán
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      booking: { $ref: '#/components/schemas/Booking' }
+                      tickets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code: { type: string, example: TH-7K2M9QXP }
+                            section: { type: string, example: VIP }
+                            row: { type: string, example: A }
+                            number: { type: integer, example: 1 }
+                            qrData: { type: string, description: Ảnh QR dạng data URL PNG }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '402':
+          description: PAYMENT_DECLINED — cổng thanh toán từ chối; `details.reason` là lý do
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/BookingNotFound' }
+        '409':
+          description: |
+            BOOKING_NOT_PENDING — booking không ở trạng thái chờ thanh toán.
+            BOOKING_EXPIRED — booking đã hết hạn giữ ghế.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /tickets/me:
+    get:
+      tags: [Tickets]
+      summary: Vé của tôi (không kèm qrData)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Ticket' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /tickets/{code}:
+    get:
+      tags: [Tickets]
+      summary: Chi tiết vé kèm qrData (chủ vé)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: { type: string, example: TH-7K2M9QXP }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    allOf:
+                      - { $ref: '#/components/schemas/Ticket' }
+                      - type: object
+                        properties:
+                          qrData: { type: string, description: Ảnh QR dạng data URL PNG }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: TICKET_NOT_FOUND — không có vé này hoặc không phải vé của bạn
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /organizer/stats:
+    get:
+      tags: [Stats]
+      summary: Thống kê các sự kiện của organizer hiện tại
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/EventStatsSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
+
+  /organizer/events/{id}/stats:
+    get:
+      tags: [Stats]
+      summary: Thống kê theo khu vực của một sự kiện (chủ sự kiện)
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: '#/components/schemas/EventStatsDetail' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NotEventOwner' }
+        '404': { $ref: '#/components/responses/EventNotFound' }
+
+  /admin/stats:
+    get:
+      tags: [Stats]
+      summary: Thống kê toàn hệ thống (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: '#/components/schemas/AdminStats' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token lấy từ `data.accessToken` của login/refresh.
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+      description: Cookie httpOnly do login/refresh đặt; trình duyệt tự gửi kèm.
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+
+  responses:
+    UserOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean, example: true }
+              data: { $ref: '#/components/schemas/User' }
+    SessionOk:
+      description: OK. Kèm header `Set-Cookie` cho `refresh_token` mới.
+      headers:
+        Set-Cookie:
+          schema: { type: string, example: refresh_token=...; Path=/api/v1/auth; HttpOnly }
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean, example: true }
+              data:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  accessToken: { type: string }
+    EventOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean, example: true }
+              data: { $ref: '#/components/schemas/Event' }
+    SectionOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean, example: true }
+              data: { $ref: '#/components/schemas/Section' }
+    BookingOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean, example: true }
+              data: { $ref: '#/components/schemas/Booking' }
+    ValidationFailed:
+      description: |
+        VALIDATION_ERROR — dữ liệu không hợp lệ; `details` là mảng `{ path, message }`.
+        INVALID_JSON — body không phải JSON hợp lệ.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: UNAUTHORIZED / TOKEN_EXPIRED — access token thiếu, sai hoặc hết hạn
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ForbiddenRole:
+      description: FORBIDDEN — role không được phép thực hiện thao tác này
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    AccountDisabled:
+      description: ACCOUNT_DISABLED — tài khoản đã bị khóa
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotEventOwner:
+      description: NOT_EVENT_OWNER — bạn không phải chủ sự kiện này
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: NOT_FOUND — không tìm thấy
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    EventNotFound:
+      description: EVENT_NOT_FOUND — không tìm thấy sự kiện
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    SectionNotFound:
+      description: SECTION_NOT_FOUND — không tìm thấy khu vực
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BookingNotFound:
+      description: BOOKING_NOT_FOUND — không có booking này hoặc không phải booking của bạn
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    EventCancelled:
+      description: EVENT_CANCELLED — sự kiện đã bị hủy
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: TOO_MANY_REQUESTS — quá 5 yêu cầu mỗi phút
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: VALIDATION_ERROR }
+            message: { type: string, example: Invalid request data }
+            details:
+              description: Tùy lỗi — mảng `{ path, message }`, mảng id ghế, hoặc object.
+
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 10 }
+        total: { type: integer, example: 42 }
+        totalPages: { type: integer, example: 5 }
+
+    Role:
+      type: string
+      enum: [USER, ORGANIZER, ADMIN]
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        fullName: { type: string, example: Nguyễn Văn A }
+        role: { $ref: '#/components/schemas/Role' }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RegisterInput:
+      type: object
+      required: [email, password, fullName]
+      properties:
+        email: { type: string, format: email, maxLength: 255 }
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+          description: Có ít nhất một chữ cái và một chữ số
+        fullName: { type: string, minLength: 2, maxLength: 100 }
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, example: user@tickethub.local }
+        password: { type: string, example: Password123 }
+
+    UpdateMeInput:
+      type: object
+      description: Cần ít nhất một trường. Đổi mật khẩu cần cả currentPassword và newPassword.
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 100 }
+        currentPassword: { type: string, maxLength: 72 }
+        newPassword: { type: string, minLength: 8, maxLength: 72 }
+
+    AdminUpdateUserInput:
+      type: object
+      description: Cần ít nhất một trường.
+      properties:
+        role: { $ref: '#/components/schemas/Role' }
+        isActive: { type: boolean }
+
+    Event:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        organizerId: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        venue: { type: string }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        bannerUrl: { type: string, nullable: true }
+        status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CreateEventInput:
+      type: object
+      description: startTime phải ở tương lai, endTime phải sau startTime.
+      required: [title, description, venue, startTime, endTime]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        venue: { type: string, minLength: 1, maxLength: 200 }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+
+    UpdateEventInput:
+      type: object
+      description: Cần ít nhất một trường; quy tắc thời gian như khi tạo.
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        venue: { type: string, minLength: 1, maxLength: 200 }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+
+    Section:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        eventId: { type: string, format: uuid }
+        name: { type: string, example: VIP }
+        price: { type: integer, example: 500000 }
+        rowCount: { type: integer, example: 2 }
+        seatsPerRow: { type: integer, example: 5 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CreateSectionInput:
+      type: object
+      required: [name, price, rowCount, seatsPerRow]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 50 }
+        price: { type: integer, minimum: 0, maximum: 2147483647 }
+        rowCount: { type: integer, minimum: 1, maximum: 26 }
+        seatsPerRow: { type: integer, minimum: 1, maximum: 50 }
+
+    UpdateSectionInput:
+      type: object
+      description: Cần ít nhất một trường; rowCount/seatsPerRow không sửa được.
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 50 }
+        price: { type: integer, minimum: 0, maximum: 2147483647 }
+
+    SeatMap:
+      type: object
+      properties:
+        eventId: { type: string, format: uuid }
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              price: { type: integer }
+              rows:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    label: { type: string, example: A }
+                    seats:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id: { type: string, format: uuid }
+                          number: { type: integer }
+                          status: { type: string, enum: [AVAILABLE, HELD, BOOKED] }
+
+    HoldSeatsInput:
+      type: object
+      required: [eventId, seatIds]
+      properties:
+        eventId: { type: string, format: uuid }
+        seatIds:
+          type: array
+          minItems: 1
+          maxItems: 6
+          uniqueItems: true
+          items: { type: string, format: uuid }
+
+    BookingStatus:
+      type: string
+      enum: [PENDING, PAID, CANCELLED, EXPIRED]
+
+    Booking:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        eventId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/BookingStatus' }
+        totalAmount: { type: integer, example: 1000000 }
+        expiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    BookingItem:
+      type: object
+      properties:
+        seatId: { type: string, format: uuid }
+        section: { type: string, example: VIP }
+        row: { type: string, example: A }
+        number: { type: integer, example: 1 }
+        price: { type: integer, description: Giá tại thời điểm giữ ghế, example: 500000 }
+
+    Ticket:
+      type: object
+      properties:
+        code: { type: string, example: TH-7K2M9QXP }
+        status: { type: string, enum: [VALID, USED, CANCELLED] }
+        event:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            title: { type: string }
+            venue: { type: string }
+            startTime: { type: string, format: date-time }
+            endTime: { type: string, format: date-time }
+        section: { type: string, example: VIP }
+        row: { type: string, example: A }
+        number: { type: integer, example: 1 }
+        createdAt: { type: string, format: date-time }
+
+    EventStatsSummary:
+      type: object
+      description: Doanh thu chỉ tính booking PAID. fillRate là phần trăm, làm tròn 1 chữ số.
+      properties:
+        eventId: { type: string, format: uuid }
+        title: { type: string }
+        status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED] }
+        capacity: { type: integer, example: 60 }
+        ticketsSold: { type: integer, example: 5 }
+        revenue: { type: integer, example: 1600000 }
+        fillRate: { type: number, example: 8.3 }
+
+    EventStatsDetail:
+      type: object
+      properties:
+        eventId: { type: string, format: uuid }
+        revenue: { type: integer, example: 1600000 }
+        ticketsSold: { type: integer, example: 5 }
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string, example: VIP }
+              price: { type: integer, example: 500000 }
+              capacity: { type: integer, example: 10 }
+              sold: { type: integer, example: 2 }
+              held: { type: integer, example: 0 }
+              revenue: { type: integer, example: 1000000 }
+              fillRate: { type: number, example: 20 }
+
+    AdminStats:
+      type: object
+      properties:
+        usersByRole:
+          type: object
+          properties:
+            USER: { type: integer }
+            ORGANIZER: { type: integer }
+            ADMIN: { type: integer }
+        events:
+          type: object
+          properties:
+            DRAFT: { type: integer }
+            PUBLISHED: { type: integer }
+            CANCELLED: { type: integer }
+        totalRevenue: { type: integer }
+        ticketsSold: { type: integer }
