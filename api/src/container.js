@@ -7,6 +7,8 @@ import * as eventRepo from './repositories/event.repo.js';
 import * as sectionRepo from './repositories/section.repo.js';
 import * as seatRepo from './repositories/seat.repo.js';
 import * as bookingRepo from './repositories/booking.repo.js';
+import * as paymentRepo from './repositories/payment.repo.js';
+import * as ticketRepo from './repositories/ticket.repo.js';
 import { FakeStorage } from './services/storage/fake-storage.js';
 import { SupabaseStorage } from './services/storage/supabase-storage.js';
 import { authenticate } from './middlewares/authenticate.js';
@@ -26,12 +28,25 @@ import { createSectionsRouter } from './modules/sections/sections.routes.js';
 import { BookingService } from './modules/bookings/bookings.service.js';
 import { createBookingsController } from './modules/bookings/bookings.controller.js';
 import { createBookingsRouter } from './modules/bookings/bookings.routes.js';
+import { MockPaymentProvider } from './modules/payments/providers/mock.provider.js';
+import { PaymentService } from './modules/payments/payment.service.js';
+import { createPaymentsController } from './modules/payments/payments.controller.js';
+import { createPaymentsRouter } from './modules/payments/payments.routes.js';
+import { TicketService } from './modules/tickets/tickets.service.js';
+import { createTicketsController } from './modules/tickets/tickets.controller.js';
+import { createTicketsRouter } from './modules/tickets/tickets.routes.js';
 
 const AUTH_RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
 
 // Nơi duy nhất khởi tạo và nối dependency.
 // rateLimitEnabled: mặc định tắt khi NODE_ENV=test; test riêng của rate limit truyền true.
-export function buildContainer({ env, pool, rateLimitEnabled = env.NODE_ENV !== 'test' }) {
+// paymentProvider: cổng thanh toán thỏa interface PaymentProvider; test truyền provider luôn thất bại.
+export function buildContainer({
+  env,
+  pool,
+  rateLimitEnabled = env.NODE_ENV !== 'test',
+  paymentProvider = new MockPaymentProvider(),
+}) {
   const logger = createLogger(env.NODE_ENV);
   const requireAuth = authenticate(jwtUtil, env.JWT_ACCESS_SECRET);
 
@@ -56,6 +71,15 @@ export function buildContainer({ env, pool, rateLimitEnabled = env.NODE_ENV !== 
   const eventService = new EventService({ pool, eventRepo, seatRepo, storage });
   const sectionService = new SectionService({ pool, eventRepo, sectionRepo, seatRepo });
   const bookingService = new BookingService({ pool, bookingRepo, seatRepo });
+  const paymentService = new PaymentService({
+    pool,
+    provider: paymentProvider,
+    bookingRepo,
+    seatRepo,
+    paymentRepo,
+    ticketRepo,
+  });
+  const ticketService = new TicketService({ pool, ticketRepo });
   const cookieOptions = refreshCookieOptions({
     nodeEnv: env.NODE_ENV,
     maxAgeMs: jwtUtil.REFRESH_TOKEN_TTL_MS,
@@ -73,6 +97,8 @@ export function buildContainer({ env, pool, rateLimitEnabled = env.NODE_ENV !== 
     createEventsRouter(createEventsController(eventService), requireAuth),
     createSectionsRouter(createSectionsController(sectionService), requireAuth),
     createBookingsRouter(createBookingsController(bookingService), requireAuth),
+    createPaymentsRouter(createPaymentsController(paymentService), requireAuth),
+    createTicketsRouter(createTicketsController(ticketService), requireAuth),
   ];
 
   return { logger, routers };
