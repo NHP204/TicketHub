@@ -80,6 +80,9 @@ export default function DashboardPage() {
                   <th scope="col" className="px-4 py-3 text-right font-medium">
                     Doanh thu
                   </th>
+                  <th scope="col" className="px-4 py-3">
+                    <span className="sr-only">Thống kê</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -110,6 +113,15 @@ export default function DashboardPage() {
                         {stats ? `${stats.ticketsSold} / ${stats.capacity}` : '0'}
                       </td>
                       <td className="px-4 py-3 text-right">{formatVnd(stats?.revenue ?? 0)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          to={`/organizer/events/${event.id}/stats`}
+                          aria-label={`Thống kê ${event.title}`}
+                          className="text-indigo-600 hover:underline"
+                        >
+                          Thống kê
+                        </Link>
+                      </td>
                     </tr>
                   );
                 })}

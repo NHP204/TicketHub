@@ -50,3 +50,10 @@ export async function createSection(eventId, section) {
 export async function deleteSection(sectionId) {
   await api.delete(`/sections/${sectionId}`);
 }
+
+// Số liệu một sự kiện: { eventId, revenue, ticketsSold,
+// sections: [{ name, price, capacity, sold, held, revenue, fillRate }] }.
+export async function getEventStats(id) {
+  const res = await api.get(`/organizer/events/${id}/stats`);
+  return res.data.data;
+}

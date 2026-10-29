@@ -238,6 +238,12 @@ export default function EventManagePage() {
             </span>
           </div>
           <div className="flex gap-2">
+            <Link
+              to={`/organizer/events/${id}/stats`}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Thống kê
+            </Link>
             {event.status === 'DRAFT' && (
               <button
                 type="button"

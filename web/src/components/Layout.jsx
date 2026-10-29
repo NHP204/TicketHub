@@ -48,6 +48,11 @@ export default function Layout() {
                     Quản lý sự kiện
                   </NavLink>
                 )}
+                {user.role === 'ADMIN' && (
+                  <NavLink to="/admin/users" className={navLinkClass}>
+                    Quản lý user
+                  </NavLink>
+                )}
                 <span className="px-3 py-2 text-sm font-medium text-slate-700">
                   {user.fullName}
                 </span>
