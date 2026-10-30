@@ -33,7 +33,7 @@ Nếu có `?next=` và trang đó hợp với role thì về `next`, nếu khôn
 ## Phạm vi
 
 Được phép sửa/tạo:
-
+- `web/src/components/SeatMap.jsx` , `SeatMap.test.jsx`
 - `api/src/modules/bookings/bookings.routes.js`, `api/src/modules/payments/payments.routes.js`,
   `api/src/modules/tickets/tickets.routes.js`
 - `api/docs/openapi.yaml` (cập nhật quyền của các endpoint trên)

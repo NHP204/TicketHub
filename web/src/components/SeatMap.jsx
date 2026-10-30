@@ -24,9 +24,17 @@ function seatState(seat, isSelected, isFull) {
   return isFull ? 'LIMIT' : 'AVAILABLE';
 }
 
-export default function SeatMap({ sections, selectedIds, onToggle, maxSelect = 6 }) {
-  const selected = new Set(selectedIds);
-  const isFull = selected.size >= maxSelect;
+// readOnly: chỉ xem (tài khoản quản lý). Mọi ghế disabled nhưng giữ màu theo trạng thái thật.
+export default function SeatMap({
+  sections,
+  selectedIds = [],
+  onToggle,
+  maxSelect = 6,
+  readOnly = false,
+}) {
+  const selected = new Set(readOnly ? [] : selectedIds);
+  const isFull = !readOnly && selected.size >= maxSelect;
+  const legendItems = readOnly ? legend.filter((item) => item.key !== 'SELECTED') : legend;
 
   // Một onClick duy nhất cho cả sơ đồ (event delegation): đọc data-seat-id của nút được bấm.
   function handleClick(event) {
@@ -38,7 +46,7 @@ export default function SeatMap({ sections, selectedIds, onToggle, maxSelect = 6
   return (
     <div onClick={handleClick}>
       <ul className="flex flex-wrap gap-4 text-sm text-slate-600" aria-label="Chú thích màu ghế">
-        {legend.map((item) => (
+        {legendItems.map((item) => (
           <li key={item.key} className="flex items-center gap-2">
             <span className={`inline-block h-4 w-4 rounded border ${seatClasses[item.key]}`} />
             {item.label}
@@ -74,7 +82,7 @@ export default function SeatMap({ sections, selectedIds, onToggle, maxSelect = 6
                         data-seat-id={seat.id}
                         aria-label={`${section.name} hàng ${row.label} ghế ${seat.number}, ${formatVnd(section.price)}`}
                         aria-pressed={isSelected}
-                        disabled={state !== 'AVAILABLE' && state !== 'SELECTED'}
+                        disabled={readOnly || (state !== 'AVAILABLE' && state !== 'SELECTED')}
                         className={`${seatBase} ${seatClasses[state]}`}
                       >
                         {seat.number}

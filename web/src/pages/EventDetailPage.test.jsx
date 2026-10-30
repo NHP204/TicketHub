@@ -45,12 +45,13 @@ const seatMap = {
   ],
 };
 
-function renderPage() {
+const customer = { user: { id: 'u1', role: 'CUSTOMER' }, status: 'authenticated' };
+
+function renderPage(auth = customer) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createMemoryRouter([{ path: '/events/:id', element: <EventDetailPage /> }], {
     initialEntries: ['/events/ev-1'],
   });
-  const auth = { user: { id: 'u1', role: 'CUSTOMER' }, status: 'authenticated' };
   render(
     <QueryClientProvider client={queryClient}>
       <AuthContext.Provider value={auth}>
@@ -79,5 +80,30 @@ describe('EventDetailPage', () => {
       (_, el) => el.tagName === 'P' && el.textContent.startsWith('Đã chọn'),
     );
     expect(summary.textContent).toBe('Đã chọn 3 ghế · Tổng tiền 1.200.000 đ');
+  });
+
+  it('ORGANIZER: không có nút "Giữ ghế" và mọi nút ghế đều disabled', async () => {
+    renderPage({ user: { id: 'org-2', role: 'ORGANIZER' }, status: 'authenticated' });
+
+    const seats = await screen.findAllByRole('button', { name: /hàng/ });
+    expect(seats).toHaveLength(3);
+    expect(seats.every((button) => button.disabled)).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Giữ ghế' })).toBeNull();
+  });
+
+  it('ORGANIZER là chủ sự kiện: có liên kết tới /organizer/events/ev-1', async () => {
+    getEvent.mockResolvedValue({ ...event, organizerId: 'org-1' });
+    renderPage({ user: { id: 'org-1', role: 'ORGANIZER' }, status: 'authenticated' });
+
+    const link = await screen.findByRole('link', { name: 'Quản lý sự kiện này' });
+    expect(link.getAttribute('href')).toBe('/organizer/events/ev-1');
+  });
+
+  it('ORGANIZER không phải chủ sự kiện: không có liên kết quản lý', async () => {
+    getEvent.mockResolvedValue({ ...event, organizerId: 'org-1' });
+    renderPage({ user: { id: 'org-2', role: 'ORGANIZER' }, status: 'authenticated' });
+
+    expect(await screen.findByText('Tài khoản quản lý không đặt vé')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Quản lý sự kiện này' })).toBeNull();
   });
 });

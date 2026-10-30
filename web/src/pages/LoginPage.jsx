@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import FormField from '../components/FormField.jsx';
 import { useAuth } from '../context/use-auth.js';
 import { parseApiError } from '../utils/api-error.js';
@@ -9,6 +9,8 @@ import { landingPath } from '../utils/role-home.js';
 export default function LoginPage() {
   const { user, status, login } = useAuth();
   const navigate = useNavigate();
+  // Thông báo từ trang khác (vd. sau khi đổi mật khẩu).
+  const flash = useLocation().state?.flash ?? null;
   const [searchParams] = useSearchParams();
   const next = searchParams.get('next');
   const [form, setForm] = useState({ email: '', password: '' });
@@ -36,6 +38,12 @@ export default function LoginPage() {
   return (
     <section className="mx-auto max-w-md rounded-lg bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-bold">Đăng nhập</h1>
+
+      {flash && !error && (
+        <p role="status" className="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+          {flash}
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">

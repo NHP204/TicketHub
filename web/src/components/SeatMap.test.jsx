@@ -78,4 +78,26 @@ describe('SeatMap', () => {
 
     expect(onToggle).not.toHaveBeenCalled();
   });
+
+  it('readOnly: click ghế AVAILABLE không gọi onToggle', () => {
+    const { onToggle } = renderSeatMap({ readOnly: true });
+
+    fireEvent.click(screen.getByRole('button', { name: 'VIP hàng A ghế 1, 500.000 đ' }));
+
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('readOnly: mọi nút ghế đều disabled', () => {
+    renderSeatMap({ readOnly: true });
+
+    const seats = screen.getAllByRole('button');
+    expect(seats).toHaveLength(8);
+    expect(seats.every((button) => button.disabled)).toBe(true);
+  });
+
+  it('readOnly: chú thích màu không có mục "Đang chọn"', () => {
+    renderSeatMap({ readOnly: true });
+
+    expect(screen.queryByText('Đang chọn')).toBeNull();
+  });
 });

@@ -15,3 +15,9 @@ export async function updateUser(id, fields) {
   const res = await api.patch(`/admin/users/${id}`, fields);
   return res.data.data;
 }
+
+// Thống kê toàn hệ thống: { usersByRole, events, totalRevenue, ticketsSold }.
+export async function getAdminStats() {
+  const res = await api.get('/admin/stats');
+  return res.data.data;
+}
