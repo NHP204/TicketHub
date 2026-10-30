@@ -227,12 +227,12 @@ export default function EventManagePage() {
   return (
     <section className="space-y-6">
       <div>
-        <Link to="/organizer" className="text-sm text-indigo-600 hover:underline">
+        <Link to="/organizer" className="text-sm text-cobalt hover:underline">
           ← Quản lý sự kiện
         </Link>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold">{event.title}</h1>
+            <h1 className="font-display font-extrabold leading-none text-3xl">{event.title}</h1>
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>
               {status.text}
             </span>
@@ -265,7 +265,7 @@ export default function EventManagePage() {
           </div>
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          {formatDateTime(event.startTime)} – {formatDateTime(event.endTime)} · {event.venue}
+          {formatDateTime(event.startTime)} – {formatDateTime(event.endTime)}, {event.venue}
         </p>
       </div>
 
@@ -330,8 +330,8 @@ export default function EventManagePage() {
                   <div>
                     <p className="font-medium">{section.name}</p>
                     <p className="text-sm text-slate-600">
-                      {formatVnd(section.price)} · {section.rowCount} hàng × {section.seatsPerRow}{' '}
-                      ghế · đã bán {section.booked}
+                      {formatVnd(section.price)}, {section.rowCount} hàng × {section.seatsPerRow}{' '}
+                      ghế, đã bán {section.booked}
                     </p>
                   </div>
                   {!isCancelled && (

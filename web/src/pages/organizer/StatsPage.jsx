@@ -43,7 +43,7 @@ export default function StatsPage() {
   return (
     <section className="space-y-6">
       <div>
-        <Link to={`/organizer/events/${id}`} className="text-sm text-indigo-600 hover:underline">
+        <Link to={`/organizer/events/${id}`} className="text-sm text-cobalt hover:underline">
           ← Quản lý sự kiện
         </Link>
         <h1 className="mt-2 text-2xl font-bold">
@@ -75,7 +75,7 @@ export default function StatsPage() {
                   <XAxis dataKey="name" />
                   <YAxis tickFormatter={(v) => compactVnd.format(v)} width={64} />
                   <Tooltip formatter={(v) => [formatVnd(v), 'Doanh thu']} />
-                  <Bar dataKey="revenue" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="revenue" fill="var(--color-cobalt)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

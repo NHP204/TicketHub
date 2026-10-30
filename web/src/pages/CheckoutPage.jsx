@@ -82,10 +82,14 @@ export default function CheckoutPage() {
     <section className="mx-auto max-w-2xl rounded-lg bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-bold">Thanh toán</h1>
       {event && (
-        <p className="mt-1 text-slate-600">
-          {event.title} · <time dateTime={event.startTime}>{formatDateTime(event.startTime)}</time>{' '}
-          · {event.venue}
-        </p>
+        <div className="mt-2 text-slate-600">
+          <p className="font-display font-extrabold leading-none text-2xl text-ink">
+            {event.title}
+          </p>
+          <p className="mt-2">
+            <time dateTime={event.startTime}>{formatDateTime(event.startTime)}</time>, {event.venue}
+          </p>
+        </div>
       )}
 
       {isPending ? (
@@ -114,7 +118,7 @@ export default function CheckoutPage() {
         {booking.items.map((item) => (
           <li key={item.seatId} className="flex justify-between py-2 text-sm">
             <span>
-              {item.section} · hàng {item.row} ghế {item.number}
+              {item.section}, hàng {item.row} ghế {item.number}
             </span>
             <span>{formatVnd(item.price)}</span>
           </li>
@@ -127,17 +131,14 @@ export default function CheckoutPage() {
 
       <div className="mt-6 flex flex-wrap justify-end gap-3">
         {booking.status === 'PAID' ? (
-          <Link
-            to="/tickets"
-            className="mr-auto self-center text-sm text-indigo-600 hover:underline"
-          >
+          <Link to="/tickets" className="mr-auto self-center text-sm text-cobalt hover:underline">
             Xem vé
           </Link>
         ) : (
           (!isPending || countdown.isExpired) && (
             <Link
               to={`/events/${booking.eventId}`}
-              className="mr-auto self-center text-sm text-indigo-600 hover:underline"
+              className="mr-auto self-center text-sm text-cobalt hover:underline"
             >
               Chọn ghế lại
             </Link>
@@ -161,7 +162,7 @@ export default function CheckoutPage() {
             payMutation.mutate();
           }}
           disabled={actionsLocked}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60"
         >
           {payMutation.isPending ? 'Đang thanh toán...' : 'Thanh toán'}
         </button>

@@ -74,7 +74,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="w-full rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60"
         >
           {mutation.isPending ? 'Đang đăng ký...' : 'Đăng ký'}
         </button>
@@ -82,7 +82,7 @@ export default function RegisterPage() {
 
       <p className="mt-4 text-center text-sm text-slate-600">
         Đã có tài khoản?{' '}
-        <Link to="/login" className="text-indigo-600 hover:underline">
+        <Link to="/login" className="text-cobalt hover:underline">
           Đăng nhập
         </Link>
       </p>

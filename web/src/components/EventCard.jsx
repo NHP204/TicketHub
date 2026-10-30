@@ -15,7 +15,7 @@ export default function EventCard({ event }) {
           <div className="aspect-video w-full bg-slate-200" aria-hidden="true" />
         )}
         <div className="p-4">
-          <h2 className="text-lg font-semibold">{event.title}</h2>
+          <h2 className="font-display font-extrabold leading-none text-2xl">{event.title}</h2>
           <p className="mt-1 text-sm text-slate-600">
             <time dateTime={event.startTime}>{formatDateTime(event.startTime)}</time>
           </p>

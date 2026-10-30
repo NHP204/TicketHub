@@ -126,7 +126,7 @@ export default function SectionEditor({ onSubmit, isSubmitting = false, apiError
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60"
         >
           {isSubmitting ? 'Đang lưu...' : 'Lưu khu vực'}
         </button>

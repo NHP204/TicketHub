@@ -10,7 +10,7 @@ import { useAuth } from '../context/use-auth.js';
 import { parseApiError } from '../utils/api-error.js';
 
 const submitClass =
-  'rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60';
+  'rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60';
 
 function ProfileForm({ profile }) {
   const queryClient = useQueryClient();

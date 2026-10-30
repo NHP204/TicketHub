@@ -86,11 +86,11 @@ export default function HomePage() {
           onChange={(e) => setText(e.target.value)}
           placeholder="Tìm theo tên sự kiện..."
           maxLength={100}
-          className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-cobalt focus:outline-none"
         />
         <button
           type="submit"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover"
         >
           Tìm
         </button>

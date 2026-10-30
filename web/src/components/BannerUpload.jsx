@@ -86,7 +86,7 @@ export default function BannerUpload({
           type="button"
           onClick={handleUpload}
           disabled={disabled || isUploading}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60"
         >
           {isUploading ? 'Đang tải lên...' : 'Tải lên'}
         </button>

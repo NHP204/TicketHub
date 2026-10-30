@@ -104,7 +104,7 @@ export function EventForm({
             onChange={handleChange}
             aria-invalid={descriptionError ? 'true' : undefined}
             aria-describedby={descriptionError ? 'description-error' : undefined}
-            className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none ${
+            className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-cobalt focus:outline-none ${
               descriptionError ? 'border-red-400' : 'border-slate-300'
             }`}
             required
@@ -146,7 +146,7 @@ export function EventForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60"
         >
           {isSubmitting ? 'Đang lưu...' : submitLabel}
         </button>
@@ -173,7 +173,7 @@ export default function EventFormPage() {
 
   return (
     <section className="mx-auto max-w-2xl">
-      <Link to="/organizer" className="text-sm text-indigo-600 hover:underline">
+      <Link to="/organizer" className="text-sm text-cobalt hover:underline">
         ← Quản lý sự kiện
       </Link>
       <h1 className="mt-2 text-2xl font-bold">Tạo sự kiện</h1>

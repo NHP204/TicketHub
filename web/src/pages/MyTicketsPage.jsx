@@ -44,19 +44,21 @@ export default function MyTicketsPage() {
           <ul className="grid gap-4 sm:grid-cols-2">
             {query.data.map((ticket) => (
               <li key={ticket.code} className="rounded-lg bg-white p-4 shadow-sm">
-                <h2 className="font-semibold">{ticket.event.title}</h2>
+                <h2 className="font-display font-extrabold leading-none text-xl">
+                  {ticket.event.title}
+                </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   <time dateTime={ticket.event.startTime}>
                     {formatDateTime(ticket.event.startTime)}
-                  </time>{' '}
-                  · {ticket.event.venue}
+                  </time>
+                  , {ticket.event.venue}
                 </p>
                 <p className="mt-2 text-sm">
-                  {ticket.section} · hàng {ticket.row} ghế {ticket.number}
+                  {ticket.section}, hàng {ticket.row} ghế {ticket.number}
                 </p>
                 <Link
                   to={`/tickets/${ticket.code}`}
-                  className="mt-3 inline-block text-sm font-medium text-indigo-600 hover:underline"
+                  className="mt-3 inline-block text-sm font-medium text-cobalt hover:underline"
                 >
                   Xem vé {ticket.code}
                 </Link>

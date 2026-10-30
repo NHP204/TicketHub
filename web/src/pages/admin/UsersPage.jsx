@@ -201,7 +201,7 @@ export default function UsersPage() {
                               type="button"
                               onClick={() => mutation.mutate({ user, fields: { isActive: true } })}
                               disabled={locked}
-                              className="rounded-md px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                              className="rounded-md px-3 py-1.5 text-sm font-medium text-cobalt hover:bg-cobalt/8 disabled:opacity-50"
                             >
                               Mở khóa
                             </button>

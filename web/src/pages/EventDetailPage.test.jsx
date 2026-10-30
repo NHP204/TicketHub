@@ -76,10 +76,8 @@ describe('EventDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'VIP hàng A ghế 2, 500.000 đ' }));
     fireEvent.click(screen.getByRole('button', { name: 'Thường hàng B ghế 1, 200.000 đ' }));
 
-    const summary = screen.getByText(
-      (_, el) => el.tagName === 'P' && el.textContent.startsWith('Đã chọn'),
-    );
-    expect(summary.textContent).toBe('Đã chọn 3 ghế · Tổng tiền 1.200.000 đ');
+    const summary = screen.getByRole('button', { name: /^Đã chọn/ });
+    expect(summary.textContent).toBe('Đã chọn 3 ghế, tổng tiền 1.200.000 đ');
   });
 
   it('ORGANIZER: không có nút "Giữ ghế" và mọi nút ghế đều disabled', async () => {

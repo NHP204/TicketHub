@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AuthContext } from '../context/use-auth.js';
@@ -25,8 +25,9 @@ describe('Layout', () => {
 
   it('user role USER không thấy "Quản lý sự kiện" và "Quản lý user"', () => {
     renderWithRole('USER');
+    const nav = within(screen.getByRole('navigation', { name: 'Điều hướng chính' }));
 
-    expect(screen.getByRole('link', { name: 'Vé của tôi' })).toBeTruthy();
+    expect(nav.getByRole('link', { name: 'Vé của tôi' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Quản lý sự kiện' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Quản lý user' })).toBeNull();
   });

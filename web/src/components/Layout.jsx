@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/use-auth.js';
+import { buttonClass } from './ui/button-class.js';
+import Icon from './ui/Icon.jsx';
+import Logo from './ui/Logo.jsx';
 
 const currentYear = new Date().getFullYear();
+const API_DOCS_URL = `${import.meta.env.VITE_API_URL ?? ''}/api-docs`;
+const SOURCE_URL = 'https://github.com/NHP204/TicketHub';
 
 // Menu riêng của từng role, sau mục "Sự kiện"; "Tài khoản" và "Đăng xuất" thêm cho mọi role.
 const MENU_BY_ROLE = {
@@ -18,17 +23,25 @@ const MENU_BY_ROLE = {
 };
 
 const navLinkClass = ({ isActive }) =>
-  `rounded-md px-3 py-2 text-sm font-medium ${
-    isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'
+  `flex min-h-11 items-center border-b-2 px-1 text-base font-medium md:h-header ${
+    isActive ? 'border-cobalt text-ink' : 'border-transparent text-muted hover:text-ink'
   }`;
+
+const footerLinkClass = 'hover:text-surface hover:underline';
 
 export default function Layout() {
   const { user, status, logout } = useAuth();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const closeMenu = () => setMenuOpen(false);
+  // Theo P15 chỉ USER có vé; khách vẫn thấy để được dẫn tới đăng nhập.
+  const showTicketsLink = status !== 'authenticated' || user.role === 'USER';
 
   async function handleLogout() {
     setLoggingOut(true);
+    closeMenu();
     try {
       await logout();
     } finally {
@@ -38,57 +51,146 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link to="/" className="text-lg font-bold text-indigo-600">
-            TicketHub
+    <div className="@container flex min-h-screen flex-col bg-paper text-ink">
+      <header className="bg-surface">
+        <div className="page-container flex flex-wrap items-center gap-x-12">
+          <Link
+            to="/"
+            onClick={closeMenu}
+            aria-label="TicketHub, trang chủ"
+            className="flex h-header items-center"
+          >
+            <Logo />
           </Link>
-          <nav className="flex items-center gap-1">
-            <NavLink to="/" end className={navLinkClass}>
-              Sự kiện
-            </NavLink>
-            {status === 'authenticated' && (
-              <>
-                {(MENU_BY_ROLE[user.role] ?? []).map((item) => (
-                  <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
-                    {item.label}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-controls="main-menu"
+            className="ml-auto flex size-11 items-center justify-center rounded-control text-ink hover:bg-paper md:hidden"
+          >
+            <Icon name={menuOpen ? 'close' : 'menu'} label={menuOpen ? 'Đóng menu' : 'Mở menu'} />
+          </button>
+          <div
+            id="main-menu"
+            className={`${
+              menuOpen ? 'flex' : 'hidden'
+            } w-full flex-col gap-4 border-t border-line py-3 md:flex md:w-auto md:flex-1 md:flex-row md:items-center md:justify-between md:border-0 md:py-0`}
+          >
+            <nav aria-label="Điều hướng chính" className="flex flex-col gap-1 md:flex-row md:gap-8">
+              <NavLink to="/" end onClick={closeMenu} className={navLinkClass}>
+                Sự kiện
+              </NavLink>
+              {status === 'authenticated' && (
+                <>
+                  {(MENU_BY_ROLE[user.role] ?? []).map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.end}
+                      onClick={closeMenu}
+                      className={navLinkClass}
+                    >
+                      {item.label}
+                    </NavLink>
+                  ))}
+                  <NavLink to="/account" onClick={closeMenu} className={navLinkClass}>
+                    Tài khoản
                   </NavLink>
-                ))}
-                <NavLink to="/account" className={navLinkClass}>
-                  Tài khoản
-                </NavLink>
+                </>
+              )}
+            </nav>
+
+            {status === 'authenticated' && (
+              <div className="flex items-center justify-between gap-4 md:justify-end">
+                <span className="truncate text-base font-medium text-ink">{user.fullName}</span>
                 <button
                   type="button"
                   onClick={handleLogout}
                   disabled={loggingOut}
-                  className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-60"
+                  className={buttonClass({ variant: 'secondary' })}
                 >
                   Đăng xuất
                 </button>
-              </>
+              </div>
             )}
             {status === 'guest' && (
-              <>
-                <NavLink to="/login" className={navLinkClass}>
+              <div className="flex items-center gap-6 md:justify-end">
+                <Link
+                  to="/login"
+                  onClick={closeMenu}
+                  className="text-base font-medium text-cobalt hover:underline"
+                >
                   Đăng nhập
-                </NavLink>
-                <NavLink to="/register" className={navLinkClass}>
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={closeMenu}
+                  className={buttonClass({ variant: 'primary' })}
+                >
                   Đăng ký
-                </NavLink>
-              </>
+                </Link>
+              </div>
             )}
-          </nav>
+          </div>
         </div>
+        <div aria-hidden="true" className="edge-perforation" />
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <main className="page-container flex-1 py-8">
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-4 text-sm text-slate-500">
-          © {currentYear} TicketHub — Hệ thống đặt vé sự kiện
+      <footer className="mt-12 bg-ink text-sm text-surface/75">
+        <div aria-hidden="true" className="edge-scallop-top" />
+        <div className="page-container grid gap-8 py-10 md:grid-cols-[2fr_1fr_1.5fr]">
+          <div>
+            <Logo tone="light" />
+            <p className="mt-3 max-w-[40ch] text-base">
+              Đặt vé sự kiện, chọn đúng chỗ ngồi trên sơ đồ ghế và nhận vé QR ngay sau thanh toán.
+            </p>
+          </div>
+          <nav aria-label="Liên kết chân trang">
+            <h2 className="font-semibold text-surface">Liên kết</h2>
+            <ul className="mt-3 space-y-2">
+              <li>
+                <Link to="/" className={footerLinkClass}>
+                  Sự kiện
+                </Link>
+              </li>
+              {showTicketsLink && (
+                <li>
+                  <Link to="/tickets" className={footerLinkClass}>
+                    Vé của tôi
+                  </Link>
+                </li>
+              )}
+              <li>
+                <Link to="/account" className={footerLinkClass}>
+                  Tài khoản
+                </Link>
+              </li>
+            </ul>
+          </nav>
+          <div>
+            <h2 className="font-semibold text-surface">Dự án</h2>
+            <ul className="mt-3 space-y-2">
+              <li>
+                <a href={API_DOCS_URL} target="_blank" rel="noreferrer" className={footerLinkClass}>
+                  Tài liệu API
+                </a>
+              </li>
+              <li>
+                <a href={SOURCE_URL} target="_blank" rel="noreferrer" className={footerLinkClass}>
+                  Mã nguồn trên GitHub
+                </a>
+              </li>
+              <li>Dự án cá nhân: Node.js, PostgreSQL, React</li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-surface/15">
+          <p className="page-container py-4">© {currentYear} NHP204</p>
         </div>
       </footer>
     </div>

@@ -89,7 +89,7 @@ export default function MyBookingsPage() {
                     {booking.status === 'PENDING' && (
                       <Link
                         to={`/checkout/${booking.id}`}
-                        className="text-sm font-medium text-indigo-600 hover:underline"
+                        className="text-sm font-medium text-cobalt hover:underline"
                       >
                         Thanh toán
                       </Link>

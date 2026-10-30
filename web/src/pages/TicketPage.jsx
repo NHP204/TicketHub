@@ -21,17 +21,17 @@ export default function TicketPage() {
 
   return (
     <section className="mx-auto max-w-md rounded-lg bg-white p-6 text-center shadow-sm">
-      <h1 className="text-xl font-bold">{ticket.event.title}</h1>
+      <h1 className="font-display font-extrabold leading-none text-2xl">{ticket.event.title}</h1>
       <p className="mt-1 text-sm text-slate-600">
-        <time dateTime={ticket.event.startTime}>{formatDateTime(ticket.event.startTime)}</time> ·{' '}
+        <time dateTime={ticket.event.startTime}>{formatDateTime(ticket.event.startTime)}</time>,{' '}
         {ticket.event.venue}
       </p>
       <img src={ticket.qrData} alt={`Mã QR vé ${ticket.code}`} className="mx-auto mt-6 h-56 w-56" />
       <p className="mt-2 font-mono text-lg font-semibold">{ticket.code}</p>
       <p className="mt-2">
-        {ticket.section} · hàng {ticket.row} ghế {ticket.number}
+        {ticket.section}, hàng {ticket.row} ghế {ticket.number}
       </p>
-      <Link to="/tickets" className="mt-6 inline-block text-sm text-indigo-600 hover:underline">
+      <Link to="/tickets" className="mt-6 inline-block text-sm text-cobalt hover:underline">
         ← Tất cả vé
       </Link>
     </section>

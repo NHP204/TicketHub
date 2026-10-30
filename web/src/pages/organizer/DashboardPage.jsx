@@ -38,7 +38,7 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold">Quản lý sự kiện</h1>
         <Link
           to="/organizer/events/new"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover"
         >
           Tạo sự kiện
         </Link>
@@ -94,7 +94,7 @@ export default function DashboardPage() {
                       <td className="px-4 py-3">
                         <Link
                           to={`/organizer/events/${event.id}`}
-                          className="font-medium text-indigo-600 hover:underline"
+                          className="font-display text-lg font-extrabold text-cobalt hover:underline"
                         >
                           {event.title}
                         </Link>
@@ -117,7 +117,7 @@ export default function DashboardPage() {
                         <Link
                           to={`/organizer/events/${event.id}/stats`}
                           aria-label={`Thống kê ${event.title}`}
-                          className="text-indigo-600 hover:underline"
+                          className="text-cobalt hover:underline"
                         >
                           Thống kê
                         </Link>

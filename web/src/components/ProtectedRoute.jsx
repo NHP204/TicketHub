@@ -28,7 +28,7 @@ export default function ProtectedRoute() {
     <section className="text-center">
       <h1 className="text-2xl font-bold">Không có quyền</h1>
       <p className="mt-2 text-slate-600">Tài khoản của bạn không được phép truy cập trang này.</p>
-      <Link to={roleHome(role)} className="mt-4 inline-block text-indigo-600 hover:underline">
+      <Link to={roleHome(role)} className="mt-4 inline-block text-cobalt hover:underline">
         Về trang của tôi
       </Link>
     </section>
