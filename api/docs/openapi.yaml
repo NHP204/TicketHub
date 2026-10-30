@@ -492,7 +492,7 @@ paths:
   /bookings:
     post:
       tags: [Bookings]
-      summary: Giữ ghế 10 phút, tạo booking PENDING
+      summary: Giữ ghế 10 phút, tạo booking PENDING (chỉ USER)
       security:
         - bearerAuth: []
       requestBody:
@@ -528,6 +528,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
         '404': { $ref: '#/components/responses/EventNotFound' }
         '409':
           description: |
@@ -540,7 +541,7 @@ paths:
   /bookings/me:
     get:
       tags: [Bookings]
-      summary: Lịch sử booking của tôi (mới nhất trước)
+      summary: Lịch sử booking của tôi, mới nhất trước (chỉ USER)
       security:
         - bearerAuth: []
       parameters:
@@ -564,11 +565,12 @@ paths:
                   meta: { $ref: '#/components/schemas/PageMeta' }
         '400': { $ref: '#/components/responses/ValidationFailed' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
 
   /bookings/{id}:
     get:
       tags: [Bookings]
-      summary: Chi tiết booking kèm ghế (chủ booking hoặc admin)
+      summary: Chi tiết booking kèm ghế (USER chủ booking hoặc ADMIN)
       security:
         - bearerAuth: []
       parameters:
@@ -592,12 +594,13 @@ paths:
                             items: { $ref: '#/components/schemas/BookingItem' }
         '400': { $ref: '#/components/responses/ValidationFailed' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
         '404': { $ref: '#/components/responses/BookingNotFound' }
 
   /bookings/{id}/cancel:
     post:
       tags: [Bookings]
-      summary: Hủy booking PENDING của tôi, trả ghế
+      summary: Hủy booking PENDING của tôi, trả ghế (chỉ USER)
       security:
         - bearerAuth: []
       parameters:
@@ -606,6 +609,7 @@ paths:
         '200': { $ref: '#/components/responses/BookingOk' }
         '400': { $ref: '#/components/responses/ValidationFailed' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
         '404': { $ref: '#/components/responses/BookingNotFound' }
         '409':
           description: BOOKING_NOT_PENDING — chỉ hủy được booking đang chờ thanh toán
@@ -616,7 +620,7 @@ paths:
   /bookings/{id}/pay:
     post:
       tags: [Payments]
-      summary: Thanh toán booking PENDING của tôi, phát hành vé
+      summary: Thanh toán booking PENDING của tôi, phát hành vé (chỉ USER)
       security:
         - bearerAuth: []
       parameters:
@@ -646,6 +650,7 @@ paths:
                             qrData: { type: string, description: Ảnh QR dạng data URL PNG }
         '400': { $ref: '#/components/responses/ValidationFailed' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
         '402':
           description: PAYMENT_DECLINED — cổng thanh toán từ chối; `details.reason` là lý do
           content:
@@ -663,7 +668,7 @@ paths:
   /tickets/me:
     get:
       tags: [Tickets]
-      summary: Vé của tôi (không kèm qrData)
+      summary: Vé của tôi, không kèm qrData (chỉ USER)
       security:
         - bearerAuth: []
       responses:
@@ -679,11 +684,12 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/Ticket' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
 
   /tickets/{code}:
     get:
       tags: [Tickets]
-      summary: Chi tiết vé kèm qrData (chủ vé)
+      summary: Chi tiết vé kèm qrData (chỉ USER, chủ vé)
       security:
         - bearerAuth: []
       parameters:
@@ -707,6 +713,7 @@ paths:
                         properties:
                           qrData: { type: string, description: Ảnh QR dạng data URL PNG }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRole' }
         '404':
           description: TICKET_NOT_FOUND — không có vé này hoặc không phải vé của bạn
           content:
