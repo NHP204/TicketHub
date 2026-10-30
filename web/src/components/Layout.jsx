@@ -4,6 +4,19 @@ import { useAuth } from '../context/use-auth.js';
 
 const currentYear = new Date().getFullYear();
 
+// Menu riêng của từng role, sau mục "Sự kiện"; "Tài khoản" và "Đăng xuất" thêm cho mọi role.
+const MENU_BY_ROLE = {
+  USER: [
+    { to: '/bookings', label: 'Booking của tôi' },
+    { to: '/tickets', label: 'Vé của tôi' },
+  ],
+  ORGANIZER: [{ to: '/organizer', label: 'Quản lý sự kiện' }],
+  ADMIN: [
+    { to: '/admin', label: 'Tổng quan', end: true },
+    { to: '/admin/users', label: 'Quản lý user' },
+  ],
+};
+
 const navLinkClass = ({ isActive }) =>
   `rounded-md px-3 py-2 text-sm font-medium ${
     isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'
@@ -37,25 +50,14 @@ export default function Layout() {
             </NavLink>
             {status === 'authenticated' && (
               <>
-                <NavLink to="/bookings" className={navLinkClass}>
-                  Đặt chỗ
-                </NavLink>
-                <NavLink to="/tickets" className={navLinkClass}>
-                  Vé của tôi
-                </NavLink>
-                {user.role === 'ORGANIZER' && (
-                  <NavLink to="/organizer" className={navLinkClass}>
-                    Quản lý sự kiện
+                {(MENU_BY_ROLE[user.role] ?? []).map((item) => (
+                  <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
+                    {item.label}
                   </NavLink>
-                )}
-                {user.role === 'ADMIN' && (
-                  <NavLink to="/admin/users" className={navLinkClass}>
-                    Quản lý user
-                  </NavLink>
-                )}
-                <span className="px-3 py-2 text-sm font-medium text-slate-700">
-                  {user.fullName}
-                </span>
+                ))}
+                <NavLink to="/account" className={navLinkClass}>
+                  Tài khoản
+                </NavLink>
                 <button
                   type="button"
                   onClick={handleLogout}

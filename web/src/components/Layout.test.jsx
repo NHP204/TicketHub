@@ -30,4 +30,11 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: 'Quản lý sự kiện' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Quản lý user' })).toBeNull();
   });
+
+  it('ADMIN không thấy "Vé của tôi"', () => {
+    renderWithRole('ADMIN');
+
+    expect(screen.getByRole('link', { name: 'Quản lý user' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Vé của tôi' })).toBeNull();
+  });
 });

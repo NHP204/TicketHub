@@ -3,22 +3,23 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import FormField from '../components/FormField.jsx';
 import { useAuth } from '../context/use-auth.js';
-import { parseApiError, safeNextPath } from '../utils/api-error.js';
+import { parseApiError } from '../utils/api-error.js';
+import { landingPath } from '../utils/role-home.js';
 
 export default function LoginPage() {
-  const { status, login } = useAuth();
+  const { user, status, login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const next = safeNextPath(searchParams.get('next'));
+  const next = searchParams.get('next');
   const [form, setForm] = useState({ email: '', password: '' });
 
   const mutation = useMutation({
     mutationFn: login,
-    onSuccess: () => navigate(next, { replace: true }),
+    onSuccess: (loggedIn) => navigate(landingPath(loggedIn.role, next), { replace: true }),
   });
 
   if (status === 'authenticated' && !mutation.isPending) {
-    return <Navigate to={next} replace />;
+    return <Navigate to={landingPath(user.role, next)} replace />;
   }
 
   const error = mutation.error ? parseApiError(mutation.error) : null;

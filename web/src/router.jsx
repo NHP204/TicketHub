@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Spinner from './components/Spinner.jsx';
+import AccountPage from './pages/AccountPage.jsx';
 import CheckoutPage from './pages/CheckoutPage.jsx';
 import EventDetailPage from './pages/EventDetailPage.jsx';
 import HomePage from './pages/HomePage.jsx';
@@ -25,20 +26,17 @@ export const router = createBrowserRouter([
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/events/:id', element: <EventDetailPage /> },
-      { path: '/login', element: <LoginPage /> },
-      { path: '/register', element: <RegisterPage /> },
       {
+        // Quyền từng đường dẫn nằm trong utils/role-home.js.
         element: <ProtectedRoute />,
         children: [
+          { path: '/login', element: <LoginPage /> },
+          { path: '/register', element: <RegisterPage /> },
+          { path: '/account', element: <AccountPage /> },
           { path: '/checkout/:bookingId', element: <CheckoutPage /> },
           { path: '/bookings', element: <MyBookingsPage /> },
           { path: '/tickets', element: <MyTicketsPage /> },
           { path: '/tickets/:code', element: <TicketPage /> },
-        ],
-      },
-      {
-        element: <ProtectedRoute roles={['ORGANIZER']} />,
-        children: [
           {
             path: '/organizer',
             element: lazyPage(() => import('./pages/organizer/DashboardPage.jsx')),
@@ -55,11 +53,10 @@ export const router = createBrowserRouter([
             path: '/organizer/events/:id/stats',
             element: lazyPage(() => import('./pages/organizer/StatsPage.jsx')),
           },
-        ],
-      },
-      {
-        element: <ProtectedRoute roles={['ADMIN']} />,
-        children: [
+          {
+            path: '/admin',
+            element: lazyPage(() => import('./pages/admin/AdminDashboardPage.jsx')),
+          },
           { path: '/admin/users', element: lazyPage(() => import('./pages/admin/UsersPage.jsx')) },
         ],
       },
