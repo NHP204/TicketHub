@@ -9,6 +9,8 @@ let refreshPromise = null;
 export const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api/v1`,
   withCredentials: true,
+  // Server miễn phí có thể mất ~1 phút để khởi động; quá thời gian này thì coi là lỗi mạng.
+  timeout: 60_000,
 });
 
 export function setAccessToken(token) {

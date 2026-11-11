@@ -82,6 +82,19 @@ describe('HomePage', () => {
     expect(new URLSearchParams(router.state.location.search).get('q')).toBe('jazz');
   });
 
+  it('danh sách tải quá 5 giây → hiện thông báo máy chủ đang khởi động', async () => {
+    vi.useFakeTimers();
+    listEvents.mockReturnValue(new Promise(() => {}));
+    renderHomePage();
+    const message = 'Máy chủ đang khởi động, lần đầu có thể mất đến một phút.';
+
+    await act(() => vi.advanceTimersByTimeAsync(4999));
+    expect(screen.queryByText(message)).toBeNull();
+
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    expect(screen.getByText(message)).toBeTruthy();
+  });
+
   it('phần đầu trang là sự kiện sắp diễn gần nhất, bỏ qua sự kiện đã qua', async () => {
     listEvents.mockResolvedValue({
       events: [
