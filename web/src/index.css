@@ -143,6 +143,57 @@
     12px 6px repeat-x;
 }
 
+/*
+ * Cuống vé: hai khấc tròn màu nền trang ở hai đầu đường xé, bị khung vé (overflow-hidden) cắt còn nửa.
+ * Dưới 640px cuống nằm dưới phần chính (đường xé ngang, khấc trái/phải);
+ * từ 640px cuống nằm bên phải (đường xé dọc, khấc trên/dưới).
+ */
+@utility ticket-stub {
+  position: relative;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: -11px;
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background-color: var(--color-paper);
+    border: 1px solid var(--color-line);
+  }
+
+  &::before {
+    left: -11px;
+  }
+
+  &::after {
+    right: -11px;
+  }
+
+  @media (width >= 40rem) {
+    &::after {
+      top: auto;
+      right: auto;
+      bottom: -11px;
+      left: -11px;
+    }
+  }
+
+  @media print {
+    &::before,
+    &::after {
+      background-color: var(--color-surface);
+    }
+  }
+}
+
+@media print {
+  body {
+    background-color: var(--color-surface);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-ticket-rise,
   .animate-spin {

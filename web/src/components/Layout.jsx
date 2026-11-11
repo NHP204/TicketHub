@@ -52,7 +52,7 @@ export default function Layout() {
 
   return (
     <div className="@container flex min-h-screen flex-col bg-paper text-ink">
-      <header className="bg-surface">
+      <header className="bg-surface print:hidden">
         <div className="page-container flex flex-wrap items-center gap-x-12">
           <Link
             to="/"
@@ -141,7 +141,7 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer className="mt-12 bg-ink text-sm text-surface/75">
+      <footer className="mt-12 bg-ink text-sm text-surface/75 print:hidden">
         <div aria-hidden="true" className="edge-scallop-top" />
         <div className="page-container grid gap-8 py-10 md:grid-cols-[2fr_1fr_1.5fr]">
           <div>
