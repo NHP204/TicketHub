@@ -80,6 +80,23 @@ describe('EventDetailPage', () => {
     expect(summary.textContent).toBe('Đã chọn 3 ghế, tổng tiền 1.200.000 đ');
   });
 
+  it('nút bỏ chọn ở khung "Ghế đã chọn" bỏ đúng ghế đó', async () => {
+    renderPage();
+    const a1 = await screen.findByRole('button', { name: 'VIP hàng A ghế 1, 500.000 đ' });
+    const a2 = screen.getByRole('button', { name: 'VIP hàng A ghế 2, 500.000 đ' });
+    fireEvent.click(a1);
+    fireEvent.click(a2);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bỏ chọn VIP hàng A ghế 1' }));
+
+    expect(a1.getAttribute('aria-pressed')).toBe('false');
+    expect(a2.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByRole('button', { name: 'Bỏ chọn VIP hàng A ghế 1' })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Đã chọn/ }).textContent).toBe(
+      'Đã chọn 1 ghế, tổng tiền 500.000 đ',
+    );
+  });
+
   it('ORGANIZER: không có nút "Giữ ghế" và mọi nút ghế đều disabled', async () => {
     renderPage({ user: { id: 'org-2', role: 'ORGANIZER' }, status: 'authenticated' });
 

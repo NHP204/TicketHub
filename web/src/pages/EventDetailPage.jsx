@@ -6,6 +6,7 @@ import { getEvent, getSeatMap } from '../api/events.api.js';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import EventHero from '../components/EventHero.jsx';
 import SeatMap from '../components/SeatMap.jsx';
+import { assignZones } from '../components/seat-zones.js';
 import SelectionPanel from '../components/SelectionPanel.jsx';
 import Spinner from '../components/Spinner.jsx';
 import { buttonClass } from '../components/ui/button-class.js';
@@ -16,8 +17,9 @@ const MAX_SEATS_PER_BOOKING = 6;
 // Tài khoản quản lý chỉ xem sơ đồ ghế, không đặt vé.
 const MANAGER_ROLES = ['ORGANIZER', 'ADMIN'];
 
-// id ghế → khu vực, hàng, số ghế và giá, để hiện danh sách ghế đã chọn.
+// id ghế → khu vực, màu khu vực, hàng, số ghế và giá, để hiện danh sách ghế đã chọn.
 function buildSeatIndex(sections) {
+  const zones = assignZones(sections);
   const index = new Map();
   for (const section of sections) {
     for (const row of section.rows) {
@@ -25,6 +27,7 @@ function buildSeatIndex(sections) {
         index.set(seat.id, {
           id: seat.id,
           sectionName: section.name,
+          zone: zones.get(section.id),
           row: row.label,
           number: seat.number,
           price: section.price,

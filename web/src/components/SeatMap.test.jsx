@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SeatMap from './SeatMap.jsx';
 
@@ -99,5 +99,25 @@ describe('SeatMap', () => {
     renderSeatMap({ readOnly: true });
 
     expect(screen.queryByText('Đang chọn')).toBeNull();
+  });
+
+  it('chú thích liệt kê khu vực theo giá giảm dần, rồi các trạng thái', () => {
+    const zoned = [
+      { id: 'std', name: 'Thường', price: 200000, rows: [] },
+      { id: 'vip', name: 'VIP', price: 500000, rows: [] },
+    ];
+    render(<SeatMap sections={zoned} selectedIds={[]} onToggle={vi.fn()} />);
+
+    const legend = screen.getByRole('list', { name: 'Chú thích màu ghế' });
+    const items = within(legend)
+      .getAllByRole('listitem')
+      .map((li) => li.textContent);
+    expect(items).toEqual([
+      'VIP, 500.000 đ',
+      'Thường, 200.000 đ',
+      'Đang chọn',
+      'Đang được giữ',
+      'Đã bán',
+    ]);
   });
 });

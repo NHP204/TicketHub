@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { formatVnd } from '../utils/format.js';
+import { ZONE_STYLES } from './seat-zones.js';
 import Button from './ui/Button.jsx';
 import Icon from './ui/Icon.jsx';
 
@@ -22,7 +23,7 @@ export default function SelectionPanel({
   return (
     <aside
       aria-label="Ghế đã chọn"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface shadow-float lg:sticky lg:inset-auto lg:top-[calc(var(--spacing-header)+24px)] lg:z-auto lg:rounded-panel lg:border lg:shadow-none"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface shadow-float lg:sticky lg:inset-auto lg:top-[calc(var(--spacing-header)+24px)] lg:z-auto lg:rounded-panel lg:border"
     >
       <div className="mx-auto flex max-w-page flex-wrap items-center gap-x-4 gap-y-3 px-6 py-3 lg:max-w-none lg:flex-col lg:items-stretch lg:p-6">
         <h2 className="hidden text-lg font-semibold lg:order-1 lg:block">Ghế đã chọn</h2>
@@ -57,11 +58,17 @@ export default function SelectionPanel({
                 const name = `${seat.sectionName} hàng ${seat.row} ghế ${seat.number}`;
                 return (
                   <li key={seat.id} className="flex items-center justify-between gap-3 py-2">
-                    <div>
-                      <p className="font-medium">
-                        {seat.sectionName}, hàng {seat.row} ghế {seat.number}
-                      </p>
-                      <p className="text-sm text-muted tabular-nums">{formatVnd(seat.price)}</p>
+                    <div className="flex min-w-0 items-start gap-2">
+                      <span
+                        aria-hidden="true"
+                        className={`mt-1.5 inline-block size-3 shrink-0 rounded-full ${ZONE_STYLES[seat.zone].swatch}`}
+                      />
+                      <div>
+                        <p className="font-medium">
+                          {seat.sectionName}, hàng {seat.row} ghế {seat.number}
+                        </p>
+                        <p className="text-sm text-cobalt tabular-nums">{formatVnd(seat.price)}</p>
+                      </div>
                     </div>
                     <button
                       type="button"
