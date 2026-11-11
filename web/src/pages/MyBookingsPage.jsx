@@ -6,15 +6,11 @@ import EmptyState from '../components/EmptyState.jsx';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import Pagination from '../components/Pagination.jsx';
 import Spinner from '../components/Spinner.jsx';
+import Badge from '../components/ui/Badge.jsx';
+import { buttonClass } from '../components/ui/button-class.js';
+import Notice from '../components/ui/Notice.jsx';
 import { parseApiError } from '../utils/api-error.js';
 import { formatDateTime, formatVnd } from '../utils/format.js';
-
-const statusLabels = {
-  PENDING: { text: 'Chờ thanh toán', className: 'bg-amber-100 text-amber-800' },
-  PAID: { text: 'Đã thanh toán', className: 'bg-green-100 text-green-800' },
-  CANCELLED: { text: 'Đã hủy', className: 'bg-slate-200 text-slate-700' },
-  EXPIRED: { text: 'Hết hạn', className: 'bg-slate-200 text-slate-700' },
-};
 
 function parsePage(value) {
   const page = Number(value);
@@ -47,13 +43,9 @@ export default function MyBookingsPage() {
 
   return (
     <section>
-      <h1 className="text-2xl font-bold">Đặt chỗ của tôi</h1>
+      <h1 className="text-2xl font-semibold">Đặt chỗ của tôi</h1>
 
-      {flash && (
-        <p role="status" className="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-          {flash}
-        </p>
-      )}
+      {flash && <Notice className="mt-4">{flash}</Notice>}
 
       <div className="mt-6">
         {query.isPending ? (
@@ -64,33 +56,38 @@ export default function MyBookingsPage() {
             onRetry={() => query.refetch()}
           />
         ) : query.data.bookings.length === 0 ? (
-          <EmptyState>Bạn chưa có đặt chỗ nào.</EmptyState>
+          <EmptyState
+            action={
+              <Link to="/" className="text-base font-medium text-cobalt hover:underline">
+                Xem các sự kiện sắp diễn ra
+              </Link>
+            }
+          >
+            Bạn chưa có đặt chỗ nào.
+          </EmptyState>
         ) : (
           <>
-            <ul className="divide-y divide-slate-200 rounded-lg bg-white shadow-sm">
+            <ul className="divide-y divide-line rounded-panel border border-line bg-surface">
               {query.data.bookings.map((booking) => {
-                const label = statusLabels[booking.status];
                 return (
-                  <li key={booking.id} className="flex flex-wrap items-center gap-4 p-4">
+                  <li
+                    key={booking.id}
+                    className="flex flex-wrap items-center gap-4 px-4 py-4 sm:px-6"
+                  >
                     <div className="flex-1">
-                      <p className="font-medium">{formatVnd(booking.totalAmount)}</p>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-lg font-semibold text-cobalt tabular-nums">
+                        {formatVnd(booking.totalAmount)}
+                      </p>
+                      <p className="text-base text-muted tabular-nums">
                         Đặt lúc{' '}
                         <time dateTime={booking.createdAt}>
                           {formatDateTime(booking.createdAt)}
                         </time>
                       </p>
                     </div>
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${label.className}`}
-                    >
-                      {label.text}
-                    </span>
+                    <Badge status={booking.status} />
                     {booking.status === 'PENDING' && (
-                      <Link
-                        to={`/checkout/${booking.id}`}
-                        className="text-sm font-medium text-indigo-600 hover:underline"
-                      >
+                      <Link to={`/checkout/${booking.id}`} className={buttonClass({ size: 'sm' })}>
                         Thanh toán
                       </Link>
                     )}

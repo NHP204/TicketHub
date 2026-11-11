@@ -5,14 +5,13 @@ import { listMyEventStats, listMyEvents } from '../../api/organizer.api.js';
 import EmptyState from '../../components/EmptyState.jsx';
 import ErrorMessage from '../../components/ErrorMessage.jsx';
 import Spinner from '../../components/Spinner.jsx';
+import Badge from '../../components/ui/Badge.jsx';
+import { buttonClass } from '../../components/ui/button-class.js';
+import Notice from '../../components/ui/Notice.jsx';
 import { parseApiError } from '../../utils/api-error.js';
-import { formatDateTime, formatVnd } from '../../utils/format.js';
+import { formatEventDateTime, formatVnd } from '../../utils/format.js';
 
-const eventStatusLabels = {
-  DRAFT: { text: 'Nháp', className: 'bg-amber-100 text-amber-800' },
-  PUBLISHED: { text: 'Đã công bố', className: 'bg-green-100 text-green-800' },
-  CANCELLED: { text: 'Đã hủy', className: 'bg-slate-200 text-slate-700' },
-};
+const th = 'px-4 py-3 text-left text-sm font-medium text-muted';
 
 export default function DashboardPage() {
   const location = useLocation();
@@ -35,20 +34,13 @@ export default function DashboardPage() {
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Quản lý sự kiện</h1>
-        <Link
-          to="/organizer/events/new"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-        >
+        <h1 className="text-2xl font-semibold">Quản lý sự kiện</h1>
+        <Link to="/organizer/events/new" className={buttonClass()}>
           Tạo sự kiện
         </Link>
       </div>
 
-      {flash && (
-        <p role="status" className="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-          {flash}
-        </p>
-      )}
+      {flash && <Notice className="mt-4">{flash}</Notice>}
 
       <div className="mt-6">
         {failedQuery ? (
@@ -59,65 +51,71 @@ export default function DashboardPage() {
         ) : eventsQuery.isPending || statsQuery.isPending ? (
           <Spinner />
         ) : eventsQuery.data.length === 0 ? (
-          <EmptyState>Bạn chưa có sự kiện nào.</EmptyState>
+          <EmptyState
+            action={
+              <Link to="/organizer/events/new" className={buttonClass()}>
+                Tạo sự kiện đầu tiên
+              </Link>
+            }
+          >
+            Bạn chưa có sự kiện nào.
+          </EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-slate-600">
+          // Khung cuộn ngang riêng: trên điện thoại chỉ bảng cuộn, trang không cuộn ngang.
+          <div className="overflow-x-auto rounded-panel border border-line bg-surface">
+            <table className="min-w-full divide-y divide-line text-base">
+              <thead className="bg-paper">
                 <tr>
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col" className={th}>
                     Tên
                   </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col" className={th}>
                     Trạng thái
                   </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col" className={th}>
                     Ngày
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">
+                  <th scope="col" className={`${th} text-right`}>
                     Vé bán
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">
+                  <th scope="col" className={`${th} text-right`}>
                     Doanh thu
                   </th>
-                  <th scope="col" className="px-4 py-3">
+                  <th scope="col" className={th}>
                     <span className="sr-only">Thống kê</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-line">
                 {eventsQuery.data.map((event) => {
                   const stats = statsByEvent.get(event.id);
-                  const status = eventStatusLabels[event.status];
                   return (
                     <tr key={event.id}>
-                      <td className="px-4 py-3">
+                      <td className="min-w-48 px-4 py-3">
                         <Link
                           to={`/organizer/events/${event.id}`}
-                          className="font-medium text-indigo-600 hover:underline"
+                          className="font-display text-lg leading-tight font-extrabold text-cobalt hover:underline"
                         >
                           {event.title}
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}
-                        >
-                          {status.text}
-                        </span>
+                        <Badge status={event.status} />
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatDateTime(event.startTime)}
+                      <td className="px-4 py-3 whitespace-nowrap text-muted tabular-nums">
+                        {formatEventDateTime(event.startTime)}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
                         {stats ? `${stats.ticketsSold} / ${stats.capacity}` : '0'}
                       </td>
-                      <td className="px-4 py-3 text-right">{formatVnd(stats?.revenue ?? 0)}</td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap text-cobalt tabular-nums">
+                        {formatVnd(stats?.revenue ?? 0)}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <Link
                           to={`/organizer/events/${event.id}/stats`}
                           aria-label={`Thống kê ${event.title}`}
-                          className="text-indigo-600 hover:underline"
+                          className="font-medium text-cobalt hover:underline"
                         >
                           Thống kê
                         </Link>

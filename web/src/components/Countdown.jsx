@@ -2,7 +2,7 @@ export default function Countdown({ display, isExpired }) {
   return (
     <p
       role="timer"
-      className={`text-3xl font-bold tabular-nums ${isExpired ? 'text-red-600' : 'text-indigo-700'}`}
+      className={`font-display text-4xl leading-none font-extrabold tabular-nums ${isExpired ? 'text-danger' : 'text-ink'}`}
       aria-label={`Thời gian giữ ghế còn lại ${display}`}
     >
       <time>{display}</time>

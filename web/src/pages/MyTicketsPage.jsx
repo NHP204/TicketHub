@@ -5,14 +5,19 @@ import { listMyTickets } from '../api/tickets.api.js';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import Spinner from '../components/Spinner.jsx';
+import Ticket from '../components/Ticket.jsx';
 import { parseApiError } from '../utils/api-error.js';
-import { formatDateTime } from '../utils/format.js';
+
+// Các vé vừa thanh toán trượt lên lệch nhau một chút, cùng một chuyển động.
+const RISE_STAGGER_MS = 80;
 
 export default function MyTicketsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   // Giữ thông báo trong state rồi xóa khỏi history, để F5 không hiện lại.
   const [flash] = useState(location.state?.flash ?? null);
+  // Mã vé vừa tạo sau thanh toán: đọc một lần, state bị xóa ngay bên dưới nên F5 không chạy lại.
+  const [newTicketCodes] = useState(() => location.state?.newTicketCodes ?? []);
 
   useEffect(() => {
     if (location.state?.flash) navigate(location.pathname, { replace: true, state: null });
@@ -21,11 +26,14 @@ export default function MyTicketsPage() {
   const query = useQuery({ queryKey: ['tickets'], queryFn: listMyTickets });
 
   return (
-    <section>
-      <h1 className="text-2xl font-bold">Vé của tôi</h1>
+    <section className="mx-auto max-w-2xl">
+      <h1 className="text-2xl font-semibold">Vé của tôi</h1>
 
       {flash && (
-        <p role="status" className="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+        <p
+          role="status"
+          className="mt-4 rounded-panel border border-success/30 bg-success/12 px-4 py-3 text-base text-success-ink"
+        >
           {flash}
         </p>
       )}
@@ -39,29 +47,41 @@ export default function MyTicketsPage() {
             onRetry={() => query.refetch()}
           />
         ) : query.data.length === 0 ? (
-          <EmptyState>Bạn chưa có vé nào.</EmptyState>
+          <EmptyState
+            action={
+              <Link to="/" className="text-base font-medium text-cobalt hover:underline">
+                Xem các sự kiện sắp diễn ra
+              </Link>
+            }
+          >
+            Bạn chưa có vé nào.
+          </EmptyState>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {query.data.map((ticket) => (
-              <li key={ticket.code} className="rounded-lg bg-white p-4 shadow-sm">
-                <h2 className="font-semibold">{ticket.event.title}</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  <time dateTime={ticket.event.startTime}>
-                    {formatDateTime(ticket.event.startTime)}
-                  </time>{' '}
-                  · {ticket.event.venue}
-                </p>
-                <p className="mt-2 text-sm">
-                  {ticket.section} · hàng {ticket.row} ghế {ticket.number}
-                </p>
-                <Link
-                  to={`/tickets/${ticket.code}`}
-                  className="mt-3 inline-block text-sm font-medium text-indigo-600 hover:underline"
-                >
-                  Xem vé {ticket.code}
-                </Link>
-              </li>
-            ))}
+          <ul className="space-y-6">
+            {query.data.map((ticket) => {
+              const riseIndex = newTicketCodes.indexOf(ticket.code);
+              return (
+                <li key={ticket.code}>
+                  <Ticket
+                    event={ticket.event}
+                    section={ticket.section}
+                    row={ticket.row}
+                    number={ticket.number}
+                    code={ticket.code}
+                    animate={riseIndex !== -1}
+                    animationDelayMs={riseIndex * RISE_STAGGER_MS}
+                    stubAction={
+                      <Link
+                        to={`/tickets/${ticket.code}`}
+                        className="text-base font-medium text-cobalt hover:underline"
+                      >
+                        Xem vé<span className="sr-only"> {ticket.code}</span>
+                      </Link>
+                    }
+                  />
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

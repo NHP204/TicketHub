@@ -3,8 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import { getTicket } from '../api/tickets.api.js';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import Spinner from '../components/Spinner.jsx';
+import Ticket from '../components/Ticket.jsx';
+import Button from '../components/ui/Button.jsx';
 import { parseApiError } from '../utils/api-error.js';
-import { formatDateTime } from '../utils/format.js';
 
 export default function TicketPage() {
   const { code } = useParams();
@@ -20,20 +21,27 @@ export default function TicketPage() {
   const ticket = query.data;
 
   return (
-    <section className="mx-auto max-w-md rounded-lg bg-white p-6 text-center shadow-sm">
-      <h1 className="text-xl font-bold">{ticket.event.title}</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        <time dateTime={ticket.event.startTime}>{formatDateTime(ticket.event.startTime)}</time> ·{' '}
-        {ticket.event.venue}
-      </p>
-      <img src={ticket.qrData} alt={`Mã QR vé ${ticket.code}`} className="mx-auto mt-6 h-56 w-56" />
-      <p className="mt-2 font-mono text-lg font-semibold">{ticket.code}</p>
-      <p className="mt-2">
-        {ticket.section} · hàng {ticket.row} ghế {ticket.number}
-      </p>
-      <Link to="/tickets" className="mt-6 inline-block text-sm text-indigo-600 hover:underline">
-        ← Tất cả vé
-      </Link>
+    <section className="mx-auto max-w-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <Link to="/tickets" className="text-base font-medium text-cobalt hover:underline">
+          Tất cả vé
+        </Link>
+        <Button variant="secondary" onClick={() => window.print()}>
+          In vé
+        </Button>
+      </div>
+      <div className="mt-6 print:mt-0">
+        <Ticket
+          event={ticket.event}
+          section={ticket.section}
+          row={ticket.row}
+          number={ticket.number}
+          code={ticket.code}
+          qrData={ticket.qrData}
+          size="lg"
+          titleAs="h1"
+        />
+      </div>
     </section>
   );
 }

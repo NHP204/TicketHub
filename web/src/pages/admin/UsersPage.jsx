@@ -7,6 +7,10 @@ import EmptyState from '../../components/EmptyState.jsx';
 import ErrorMessage from '../../components/ErrorMessage.jsx';
 import Pagination from '../../components/Pagination.jsx';
 import Spinner from '../../components/Spinner.jsx';
+import Badge from '../../components/ui/Badge.jsx';
+import Button from '../../components/ui/Button.jsx';
+import Notice from '../../components/ui/Notice.jsx';
+import Select from '../../components/ui/Select.jsx';
 import { useAuth } from '../../context/use-auth.js';
 import { parseApiError } from '../../utils/api-error.js';
 import { formatDateTime } from '../../utils/format.js';
@@ -79,36 +83,26 @@ export default function UsersPage() {
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Quản lý user</h1>
-        <div className="flex items-center gap-2">
-          <label htmlFor="role-filter" className="text-sm font-medium text-slate-700">
+        <h1 className="text-2xl font-semibold">Quản lý user</h1>
+        <div className="flex items-center gap-3">
+          <label htmlFor="role-filter" className="text-base font-medium">
             Lọc theo role
           </label>
-          <select
-            id="role-filter"
-            value={role}
-            onChange={handleFilterChange}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          >
+          <Select id="role-filter" value={role} onChange={handleFilterChange}>
             <option value="">Tất cả</option>
             {ROLES.map((r) => (
               <option key={r} value={r}>
                 {roleLabels[r]}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
       {notice && (
-        <p
-          role={notice.tone === 'error' ? 'alert' : 'status'}
-          className={`mt-4 rounded-md px-3 py-2 text-sm ${
-            notice.tone === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-          }`}
-        >
+        <Notice tone={notice.tone} className="mt-4">
           {notice.text}
-        </p>
+        </Notice>
       )}
 
       <div className="mt-6">
@@ -120,12 +114,12 @@ export default function UsersPage() {
             onRetry={() => query.refetch()}
           />
         ) : query.data.users.length === 0 ? (
-          <EmptyState>Không có user nào.</EmptyState>
+          <EmptyState>Không có user nào với role này. Chọn "Tất cả" để xem mọi user.</EmptyState>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-slate-600">
+            <div className="overflow-x-auto rounded-panel border border-line bg-surface">
+              <table className="min-w-full divide-y divide-line text-base">
+                <thead className="bg-paper text-left text-sm text-muted">
                   <tr>
                     <th scope="col" className="px-4 py-3 font-medium">
                       Họ tên
@@ -147,64 +141,59 @@ export default function UsersPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-line">
                   {query.data.users.map((user) => {
                     const isSelf = user.id === currentUser?.id;
                     const locked = isSelf || mutation.isPending;
                     return (
                       <tr key={user.id}>
-                        <td className="px-4 py-3 font-medium">{user.fullName}</td>
-                        <td className="px-4 py-3 text-slate-600">{user.email}</td>
+                        <td className="px-4 py-3 font-medium whitespace-nowrap">{user.fullName}</td>
+                        <td className="px-4 py-3 text-muted">{user.email}</td>
                         <td className="px-4 py-3">
-                          <select
+                          <Select
                             aria-label={`Role của ${user.fullName}`}
                             value={user.role}
                             disabled={locked}
                             onChange={(e) =>
                               mutation.mutate({ user, fields: { role: e.target.value } })
                             }
-                            className="rounded-md border border-slate-300 px-2 py-1 text-sm disabled:opacity-60"
                           >
                             {ROLES.map((r) => (
                               <option key={r} value={r}>
                                 {roleLabels[r]}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </td>
                         <td className="px-4 py-3">
                           {user.isActive ? (
-                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                              Hoạt động
-                            </span>
+                            <Badge tone="success">Hoạt động</Badge>
                           ) : (
-                            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
-                              Đã khóa
-                            </span>
+                            <Badge tone="neutral">Đã khóa</Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-muted tabular-nums">
                           {formatDateTime(user.createdAt)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {user.isActive ? (
-                            <button
-                              type="button"
+                            <Button
+                              variant="danger-ghost"
+                              size="sm"
                               onClick={() => setLockTarget(user)}
                               disabled={locked}
-                              className="rounded-md px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
                             >
                               Khóa
-                            </button>
+                            </Button>
                           ) : (
-                            <button
-                              type="button"
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => mutation.mutate({ user, fields: { isActive: true } })}
                               disabled={locked}
-                              className="rounded-md px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
                             >
                               Mở khóa
-                            </button>
+                            </Button>
                           )}
                         </td>
                       </tr>

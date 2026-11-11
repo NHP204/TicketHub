@@ -4,25 +4,38 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { holdSeats } from '../api/bookings.api.js';
 import { getEvent, getSeatMap } from '../api/events.api.js';
 import ErrorMessage from '../components/ErrorMessage.jsx';
+import EventHero from '../components/EventHero.jsx';
 import SeatMap from '../components/SeatMap.jsx';
+import { assignZones } from '../components/seat-zones.js';
+import SelectionPanel from '../components/SelectionPanel.jsx';
 import Spinner from '../components/Spinner.jsx';
+import { buttonClass } from '../components/ui/button-class.js';
 import { useAuth } from '../context/use-auth.js';
 import { parseApiError } from '../utils/api-error.js';
-import { formatDateTime, formatVnd } from '../utils/format.js';
 
 const MAX_SEATS_PER_BOOKING = 6;
 // Tài khoản quản lý chỉ xem sơ đồ ghế, không đặt vé.
 const MANAGER_ROLES = ['ORGANIZER', 'ADMIN'];
 
-// id ghế → giá của section chứa ghế.
-function buildSeatPrices(sections) {
-  const prices = new Map();
+// id ghế → khu vực, màu khu vực, hàng, số ghế và giá, để hiện danh sách ghế đã chọn.
+function buildSeatIndex(sections) {
+  const zones = assignZones(sections);
+  const index = new Map();
   for (const section of sections) {
     for (const row of section.rows) {
-      for (const seat of row.seats) prices.set(seat.id, section.price);
+      for (const seat of row.seats) {
+        index.set(seat.id, {
+          id: seat.id,
+          sectionName: section.name,
+          zone: zones.get(section.id),
+          row: row.label,
+          number: seat.number,
+          price: section.price,
+        });
+      }
     }
   }
-  return prices;
+  return index;
 }
 
 export default function EventDetailPage() {
@@ -82,34 +95,22 @@ export default function EventDetailPage() {
 
   const event = eventQuery.data;
   const sections = seatMapQuery.data?.sections ?? [];
-  const seatPrices = buildSeatPrices(sections);
-  const total = selectedIds.reduce((sum, seatId) => sum + (seatPrices.get(seatId) ?? 0), 0);
+  const seatIndex = buildSeatIndex(sections);
+  const selectedSeats = selectedIds.map((seatId) => seatIndex.get(seatId)).filter(Boolean);
+  const total = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
   const isOwner = isManager && user.role === 'ORGANIZER' && event.organizerId === user.id;
 
   return (
-    <section className={isManager ? undefined : 'pb-28'}>
-      {event.bannerUrl && (
-        <img
-          src={event.bannerUrl}
-          alt={`Banner sự kiện ${event.title}`}
-          className="aspect-[3/1] w-full rounded-lg object-cover"
-        />
-      )}
-      <h1 className="mt-6 text-2xl font-bold">{event.title}</h1>
-      <p className="mt-2 text-slate-600">
-        <time dateTime={event.startTime}>{formatDateTime(event.startTime)}</time> · {event.venue}
-      </p>
-      {event.description && (
-        <p className="mt-4 whitespace-pre-line text-slate-700">{event.description}</p>
-      )}
+    <section className={isManager ? undefined : 'pb-28 lg:pb-0'}>
+      <EventHero event={event} />
 
       {isManager && (
-        <div className="mt-6 flex flex-wrap items-center gap-4 rounded-md bg-slate-100 px-4 py-3">
-          <p className="text-sm text-slate-700">Tài khoản quản lý không đặt vé</p>
+        <div className="mt-8 flex flex-wrap items-center gap-4 rounded-panel border border-line bg-surface px-4 py-3">
+          <p className="text-base text-ink">Tài khoản quản lý không đặt vé</p>
           {isOwner && (
             <Link
               to={`/organizer/events/${event.id}`}
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
+              className={buttonClass({ variant: 'primary', size: 'sm' })}
             >
               Quản lý sự kiện này
             </Link>
@@ -117,51 +118,55 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      <h2 className="mt-8 text-xl font-semibold">{isManager ? 'Sơ đồ ghế' : 'Chọn ghế'}</h2>
+      <div
+        className={`mt-8 ${
+          isManager ? '' : 'lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8'
+        }`}
+      >
+        <div className="min-w-0">
+          <h2 className="text-xl font-semibold">{isManager ? 'Sơ đồ ghế' : 'Chọn ghế'}</h2>
 
-      {holdError && (
-        <p role="alert" className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {holdError}
-        </p>
-      )}
+          {holdError && (
+            <p
+              role="alert"
+              className="mt-4 rounded-panel border border-danger/30 bg-danger/5 px-4 py-3 text-base text-ink"
+            >
+              {holdError}
+            </p>
+          )}
 
-      <div className="mt-4">
-        {seatMapQuery.isPending ? (
-          <Spinner />
-        ) : seatMapQuery.isError ? (
-          <ErrorMessage
-            message={parseApiError(seatMapQuery.error).message}
-            onRetry={() => seatMapQuery.refetch()}
-          />
-        ) : (
-          <SeatMap
-            sections={sections}
-            selectedIds={selectedIds}
-            onToggle={handleToggle}
+          <div className="mt-4">
+            {seatMapQuery.isPending ? (
+              <Spinner />
+            ) : seatMapQuery.isError ? (
+              <ErrorMessage
+                message={parseApiError(seatMapQuery.error).message}
+                onRetry={() => seatMapQuery.refetch()}
+              />
+            ) : (
+              <SeatMap
+                sections={sections}
+                selectedIds={selectedIds}
+                onToggle={handleToggle}
+                maxSelect={MAX_SEATS_PER_BOOKING}
+                readOnly={isManager}
+              />
+            )}
+          </div>
+        </div>
+
+        {!isManager && (
+          <SelectionPanel
+            seats={selectedSeats}
+            total={total}
+            isFull={selectedIds.length >= MAX_SEATS_PER_BOOKING}
             maxSelect={MAX_SEATS_PER_BOOKING}
-            readOnly={isManager}
+            onRemove={handleToggle}
+            onHold={handleHold}
+            holding={holdMutation.isPending}
           />
         )}
       </div>
-
-      {!isManager && (
-        <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-            <p className="text-sm" aria-live="polite">
-              Đã chọn <strong>{selectedIds.length}</strong> ghế · Tổng tiền{' '}
-              <strong>{formatVnd(total)}</strong>
-            </p>
-            <button
-              type="button"
-              onClick={handleHold}
-              disabled={selectedIds.length === 0 || holdMutation.isPending}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
-            >
-              {holdMutation.isPending ? 'Đang giữ ghế...' : 'Giữ ghế'}
-            </button>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

@@ -10,21 +10,21 @@ import {
   updateEvent,
   uploadBanner,
 } from '../../api/organizer.api.js';
+import BackLink from '../../components/BackLink.jsx';
 import BannerUpload from '../../components/BannerUpload.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import ErrorMessage from '../../components/ErrorMessage.jsx';
 import SectionEditor from '../../components/SectionEditor.jsx';
 import Spinner from '../../components/Spinner.jsx';
+import Badge from '../../components/ui/Badge.jsx';
+import Button from '../../components/ui/Button.jsx';
+import { buttonClass } from '../../components/ui/button-class.js';
+import Notice from '../../components/ui/Notice.jsx';
+import Panel from '../../components/ui/Panel.jsx';
 import { parseApiError } from '../../utils/api-error.js';
-import { formatDateTime, formatVnd } from '../../utils/format.js';
+import { formatEventDateTime, formatVnd } from '../../utils/format.js';
 import { EventForm } from './EventFormPage.jsx';
-
-const eventStatusLabels = {
-  DRAFT: { text: 'Nháp', className: 'bg-amber-100 text-amber-800' },
-  PUBLISHED: { text: 'Đã công bố', className: 'bg-green-100 text-green-800' },
-  CANCELLED: { text: 'Đã hủy', className: 'bg-slate-200 text-slate-700' },
-};
 
 // Mã lỗi API → câu giải thích cho organizer; mã khác dùng message của API.
 const friendlyMessages = {
@@ -201,7 +201,6 @@ export default function EventManagePage() {
   }
 
   const event = eventQuery.data;
-  const status = eventStatusLabels[event.status];
   const isCancelled = event.status === 'CANCELLED';
   const sections = (seatMapQuery.data?.sections ?? []).map(summarizeSection);
 
@@ -227,61 +226,41 @@ export default function EventManagePage() {
   return (
     <section className="space-y-6">
       <div>
-        <Link to="/organizer" className="text-sm text-indigo-600 hover:underline">
-          ← Quản lý sự kiện
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+        <BackLink to="/organizer">Quản lý sự kiện</BackLink>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold">{event.title}</h1>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>
-              {status.text}
-            </span>
+            <h1 className="font-display text-3xl leading-none font-extrabold">{event.title}</h1>
+            <Badge status={event.status} />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link
               to={`/organizer/events/${id}/stats`}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className={buttonClass({ variant: 'secondary' })}
             >
               Thống kê
             </Link>
             {event.status === 'DRAFT' && (
-              <button
-                type="button"
-                onClick={() => setConfirm({ kind: 'publish' })}
-                className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
-              >
-                Publish
-              </button>
+              <Button onClick={() => setConfirm({ kind: 'publish' })}>Publish</Button>
             )}
             {!isCancelled && (
-              <button
-                type="button"
-                onClick={() => setConfirm({ kind: 'cancel' })}
-                className="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-              >
+              <Button variant="danger" onClick={() => setConfirm({ kind: 'cancel' })}>
                 Hủy sự kiện
-              </button>
+              </Button>
             )}
           </div>
         </div>
-        <p className="mt-1 text-sm text-slate-600">
-          {formatDateTime(event.startTime)} – {formatDateTime(event.endTime)} · {event.venue}
+        <p className="mt-2 text-base text-muted tabular-nums">
+          <time dateTime={event.startTime}>{formatEventDateTime(event.startTime)}</time>
+          {' đến '}
+          <time dateTime={event.endTime}>{formatEventDateTime(event.endTime)}</time>
         </p>
+        <p className="text-base text-muted">{event.venue}</p>
       </div>
 
-      {notice && (
-        <p
-          role={notice.tone === 'error' ? 'alert' : 'status'}
-          className={`rounded-md px-3 py-2 text-sm ${
-            notice.tone === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-          }`}
-        >
-          {notice.text}
-        </p>
-      )}
+      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <Panel>
           <h2 className="text-lg font-semibold">Thông tin sự kiện</h2>
           <div className="mt-4">
             <EventForm
@@ -294,9 +273,9 @@ export default function EventManagePage() {
               disabled={isCancelled}
             />
           </div>
-        </div>
+        </Panel>
 
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <Panel>
           <h2 className="text-lg font-semibold">Banner</h2>
           <div className="mt-4">
             <BannerUpload
@@ -308,10 +287,10 @@ export default function EventManagePage() {
               disabled={isCancelled}
             />
           </div>
-        </div>
+        </Panel>
       </div>
 
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <Panel>
         <h2 className="text-lg font-semibold">Khu vực ghế</h2>
         <div className="mt-4">
           {seatMapQuery.isPending ? (
@@ -322,27 +301,29 @@ export default function EventManagePage() {
               onRetry={() => seatMapQuery.refetch()}
             />
           ) : sections.length === 0 ? (
-            <EmptyState>Chưa có khu vực ghế nào.</EmptyState>
+            <EmptyState>
+              Chưa có khu vực ghế nào. Thêm khu vực bên dưới để có thể publish.
+            </EmptyState>
           ) : (
-            <ul className="divide-y divide-slate-200">
+            <ul className="divide-y divide-line border-y border-line">
               {sections.map((section) => (
                 <li key={section.id} className="flex items-center justify-between gap-4 py-3">
                   <div>
                     <p className="font-medium">{section.name}</p>
-                    <p className="text-sm text-slate-600">
-                      {formatVnd(section.price)} · {section.rowCount} hàng × {section.seatsPerRow}{' '}
-                      ghế · đã bán {section.booked}
+                    <p className="text-base text-muted tabular-nums">
+                      <span className="text-cobalt">{formatVnd(section.price)}</span>,{' '}
+                      {section.rowCount} hàng × {section.seatsPerRow} ghế, đã bán {section.booked}
                     </p>
                   </div>
                   {!isCancelled && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="danger-ghost"
+                      size="sm"
                       onClick={() => setConfirm({ kind: 'deleteSection', section })}
                       aria-label={`Xóa khu vực ${section.name}`}
-                      className="rounded-md px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
                     >
                       Xóa
-                    </button>
+                    </Button>
                   )}
                 </li>
               ))}
@@ -351,8 +332,8 @@ export default function EventManagePage() {
         </div>
 
         {!isCancelled && (
-          <div className="mt-6 border-t border-slate-200 pt-6">
-            <h3 className="font-semibold">Thêm khu vực</h3>
+          <div className="mt-6">
+            <h3 className="text-base font-semibold">Thêm khu vực</h3>
             <div className="mt-4">
               <SectionEditor
                 key={sectionEditorKey}
@@ -365,7 +346,7 @@ export default function EventManagePage() {
             </div>
           </div>
         )}
-      </div>
+      </Panel>
 
       <ConfirmDialog
         open={confirm !== null}

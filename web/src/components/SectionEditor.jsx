@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import FormField from './FormField.jsx';
+import Button from './ui/Button.jsx';
+import Notice from './ui/Notice.jsx';
 
 // Giới hạn giống createSectionSchema của API.
 const MAX_PRICE = 2_147_483_647;
@@ -66,11 +68,7 @@ export default function SectionEditor({ onSubmit, isSubmitting = false, apiError
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      {apiError && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {apiError.message}
-        </p>
-      )}
+      {apiError && <Notice tone="error">{apiError.message}</Notice>}
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField
           id="name"
@@ -120,16 +118,12 @@ export default function SectionEditor({ onSubmit, isSubmitting = false, apiError
         />
       </div>
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-slate-600" aria-live="polite">
+        <p className="text-base text-muted tabular-nums" aria-live="polite">
           {seatCount !== null && `Sẽ tạo ${seatCount} ghế`}
         </p>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
-        >
-          {isSubmitting ? 'Đang lưu...' : 'Lưu khu vực'}
-        </button>
+        <Button type="submit" loading={isSubmitting} loadingLabel="Đang lưu...">
+          Lưu khu vực
+        </Button>
       </div>
     </form>
   );

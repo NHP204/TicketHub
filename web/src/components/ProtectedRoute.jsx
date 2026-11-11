@@ -25,10 +25,15 @@ export default function ProtectedRoute() {
   }
 
   return (
-    <section className="text-center">
-      <h1 className="text-2xl font-bold">Không có quyền</h1>
-      <p className="mt-2 text-slate-600">Tài khoản của bạn không được phép truy cập trang này.</p>
-      <Link to={roleHome(role)} className="mt-4 inline-block text-indigo-600 hover:underline">
+    <section className="py-12 text-center">
+      <h1 className="text-2xl font-semibold">Không có quyền</h1>
+      <p className="mt-2 text-base text-muted">
+        Tài khoản của bạn không được phép truy cập trang này.
+      </p>
+      <Link
+        to={roleHome(role)}
+        className="mt-4 inline-block font-medium text-cobalt hover:underline"
+      >
         Về trang của tôi
       </Link>
     </section>

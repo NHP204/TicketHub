@@ -6,11 +6,11 @@ import { updateMe } from '../api/users.api.js';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import FormField from '../components/FormField.jsx';
 import Spinner from '../components/Spinner.jsx';
+import Button from '../components/ui/Button.jsx';
+import Notice from '../components/ui/Notice.jsx';
+import Panel from '../components/ui/Panel.jsx';
 import { useAuth } from '../context/use-auth.js';
 import { parseApiError } from '../utils/api-error.js';
-
-const submitClass =
-  'rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60';
 
 function ProfileForm({ profile }) {
   const queryClient = useQueryClient();
@@ -30,18 +30,10 @@ function ProfileForm({ profile }) {
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
-      {error && !error.fieldErrors.fullName && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error.message}
-        </p>
-      )}
-      {mutation.isSuccess && (
-        <p role="status" className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-          Đã lưu họ tên.
-        </p>
-      )}
-      <p className="text-sm text-slate-600">
-        Email: <span className="font-medium text-slate-900">{profile.email}</span>
+      {error && !error.fieldErrors.fullName && <Notice tone="error">{error.message}</Notice>}
+      {mutation.isSuccess && <Notice>Đã lưu họ tên.</Notice>}
+      <p className="text-base text-muted">
+        Email: <span className="font-medium text-ink">{profile.email}</span>
       </p>
       <FormField
         id="fullName"
@@ -52,9 +44,9 @@ function ProfileForm({ profile }) {
         error={error?.fieldErrors.fullName}
         required
       />
-      <button type="submit" disabled={mutation.isPending} className={submitClass}>
-        {mutation.isPending ? 'Đang lưu...' : 'Lưu họ tên'}
-      </button>
+      <Button type="submit" loading={mutation.isPending} loadingLabel="Đang lưu...">
+        Lưu họ tên
+      </Button>
     </form>
   );
 }
@@ -97,11 +89,7 @@ function PasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
-      {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error.message}
-        </p>
-      )}
+      {error && <Notice tone="error">{error.message}</Notice>}
       <FormField
         id="currentPassword"
         label="Mật khẩu hiện tại"
@@ -132,9 +120,9 @@ function PasswordForm() {
         error={mismatch ? 'Mật khẩu nhập lại không khớp' : undefined}
         required
       />
-      <button type="submit" disabled={mutation.isPending} className={submitClass}>
-        {mutation.isPending ? 'Đang đổi...' : 'Đổi mật khẩu'}
-      </button>
+      <Button type="submit" loading={mutation.isPending} loadingLabel="Đang đổi...">
+        Đổi mật khẩu
+      </Button>
     </form>
   );
 }
@@ -143,10 +131,10 @@ export default function AccountPage() {
   const meQuery = useQuery({ queryKey: ['me'], queryFn: me });
 
   return (
-    <section className="mx-auto max-w-md space-y-6">
-      <h1 className="text-2xl font-bold">Tài khoản</h1>
+    <section className="mx-auto max-w-lg space-y-6">
+      <h1 className="text-2xl font-semibold">Tài khoản</h1>
 
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <Panel>
         <h2 className="text-lg font-semibold">Thông tin cá nhân</h2>
         {meQuery.isPending ? (
           <Spinner />
@@ -160,12 +148,12 @@ export default function AccountPage() {
         ) : (
           <ProfileForm profile={meQuery.data} />
         )}
-      </div>
+      </Panel>
 
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <Panel>
         <h2 className="text-lg font-semibold">Đổi mật khẩu</h2>
         <PasswordForm />
-      </div>
+      </Panel>
     </section>
   );
 }
