@@ -81,4 +81,21 @@ describe('HomePage', () => {
     expect(router.state.location.pathname).toBe('/');
     expect(new URLSearchParams(router.state.location.search).get('q')).toBe('jazz');
   });
+
+  it('phần đầu trang là sự kiện sắp diễn gần nhất, bỏ qua sự kiện đã qua', async () => {
+    listEvents.mockResolvedValue({
+      events: [
+        { id: 'old', title: 'Đã diễn', venue: 'A', startTime: '2020-01-01T12:00:00Z' },
+        { id: 'next', title: 'Đêm nhạc Jazz', venue: 'B', startTime: '2099-11-28T13:00:00Z' },
+        { id: 'later', title: 'Hòa nhạc', venue: 'C', startTime: '2099-12-05T13:00:00Z' },
+      ],
+      meta: { page: 1, limit: 12, total: 3, totalPages: 1 },
+    });
+    renderHomePage();
+
+    // Chỉ phần đầu trang dùng h2 cho tên sự kiện; dòng lịch diễn dùng h3.
+    const heroTitle = await screen.findByRole('heading', { level: 2, name: 'Đêm nhạc Jazz' });
+    expect(heroTitle).toBeTruthy();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Đã diễn' })).toBeNull();
+  });
 });

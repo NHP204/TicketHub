@@ -1,11 +1,16 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorMessage from '../components/ErrorMessage.jsx';
-import EventCard from '../components/EventCard.jsx';
+import EventHero from '../components/EventHero.jsx';
+import EventSchedule from '../components/EventSchedule.jsx';
 import Pagination from '../components/Pagination.jsx';
 import Spinner from '../components/Spinner.jsx';
+import Button from '../components/ui/Button.jsx';
+import { buttonClass } from '../components/ui/button-class.js';
+import Field from '../components/ui/Field.jsx';
+import Input from '../components/ui/Input.jsx';
 import { listEvents } from '../api/events.api.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { parseApiError } from '../utils/api-error.js';
@@ -68,35 +73,50 @@ export default function HomePage() {
     setSearchParams(toSearchParams(q, nextPage));
   }
 
+  function handleClearSearch() {
+    setText('');
+    setSearchParams({});
+  }
+
   const events = query.data?.events ?? [];
   const meta = query.data?.meta;
+  // Phần đầu trang: sự kiện sắp diễn gần nhất, chỉ ở trang 1 khi không tìm kiếm.
+  // API sắp theo startTime tăng dần nên sự kiện đầu tiên chưa diễn là gần nhất.
+  const [now] = useState(() => new Date());
+  const nextEvent =
+    !q && page === 1 ? events.find((event) => new Date(event.startTime) >= now) : undefined;
 
   return (
     <section>
-      <h1 className="text-2xl font-bold">Sự kiện sắp diễn ra</h1>
-
-      <form role="search" onSubmit={handleSubmit} className="mt-4 flex gap-2">
-        <label htmlFor="event-search" className="sr-only">
-          Tìm sự kiện
-        </label>
-        <input
-          id="event-search"
-          type="search"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Tìm theo tên sự kiện..."
-          maxLength={100}
-          className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-cobalt focus:outline-none"
+      {nextEvent && (
+        <EventHero
+          event={nextEvent}
+          titleAs="h2"
+          showDescription={false}
+          action={
+            <Link to={`/events/${nextEvent.id}`} className={buttonClass({ variant: 'secondary' })}>
+              Chọn ghế<span className="sr-only">: {nextEvent.title}</span>
+            </Link>
+          }
         />
-        <button
-          type="submit"
-          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover"
-        >
-          Tìm
-        </button>
+      )}
+
+      <h1 className={`text-2xl font-semibold ${nextEvent ? 'mt-10' : ''}`}>Lịch diễn</h1>
+
+      <form role="search" onSubmit={handleSubmit} className="mt-4 flex max-w-xl items-end gap-2">
+        <Field id="event-search" label="Tìm sự kiện" className="flex-1">
+          <Input
+            type="search"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Tên sự kiện hoặc địa điểm"
+            maxLength={100}
+          />
+        </Field>
+        <Button type="submit">Tìm</Button>
       </form>
 
-      <div className="mt-6">
+      <div className="mt-8">
         {query.isPending ? (
           <Spinner />
         ) : query.isError ? (
@@ -105,14 +125,22 @@ export default function HomePage() {
             onRetry={() => query.refetch()}
           />
         ) : events.length === 0 ? (
-          <EmptyState>{q ? `Không có sự kiện khớp với “${q}”` : 'Chưa có sự kiện nào.'}</EmptyState>
+          q ? (
+            <EmptyState
+              action={
+                <Button variant="secondary" onClick={handleClearSearch}>
+                  Xem tất cả sự kiện
+                </Button>
+              }
+            >
+              {`Không có sự kiện khớp với “${q}”`}
+            </EmptyState>
+          ) : (
+            <EmptyState>Chưa có lịch diễn mới. Quay lại sau để chọn ghế sớm.</EmptyState>
+          )
         ) : (
           <>
-            <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </ul>
+            <EventSchedule events={events} now={now} />
             {meta && (
               <Pagination
                 page={meta.page}
