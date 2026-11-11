@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState('loading');
 
+  // Logout / hết phiên: bỏ dữ liệu của user cũ khỏi cache.
   const becomeGuest = useCallback(() => {
     setUser(null);
     setStatus('guest');
@@ -27,20 +28,28 @@ export function AuthProvider({ children }) {
 
   // Khôi phục phiên từ refresh cookie. StrictMode chạy effect 2 lần nhưng refreshSession
   // dùng chung một promise nên /auth/refresh chỉ được gọi một lần (tránh bị coi là dùng lại token).
+  // Kết quả khách KHÔNG clear cache: chưa từng có phiên nên cache không có dữ liệu riêng, còn
+  // clear() sẽ hủy âm thầm query công khai đang tải (vd. danh sách sự kiện) → spinner quay mãi.
+  // Mọi nhánh kết thúc ở 'authenticated' hoặc 'guest'; request treo bị axios timeout cắt.
   useEffect(() => {
     let cancelled = false;
+    const startAsGuest = () => {
+      if (cancelled) return;
+      setUser(null);
+      setStatus('guest');
+    };
     authApi
       .refresh()
-      .then(({ user: restored }) => {
-        if (!cancelled) becomeAuthenticated(restored);
+      .then((session) => {
+        // null = API trả 204 (không có refresh cookie) → khách.
+        if (!session?.user) return startAsGuest();
+        if (!cancelled) becomeAuthenticated(session.user);
       })
-      .catch(() => {
-        if (!cancelled) becomeGuest();
-      });
+      .catch(startAsGuest);
     return () => {
       cancelled = true;
     };
-  }, [becomeAuthenticated, becomeGuest]);
+  }, [becomeAuthenticated]);
 
   const login = useCallback(
     async (credentials) => {

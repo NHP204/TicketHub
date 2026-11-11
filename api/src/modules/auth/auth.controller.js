@@ -33,6 +33,7 @@ export function createAuthController(authService, cookieOptions) {
 
     async refresh(req, res) {
       const result = await authService.refresh(req.cookies[REFRESH_COOKIE_NAME]);
+      if (!result) return res.status(204).end();
       return sendSession(res, result);
     },
 

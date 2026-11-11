@@ -79,8 +79,9 @@ export class AuthService {
   }
 
   // Xoay vòng: token cũ bị thu hồi và trỏ replaced_by sang token mới, tất cả trong một transaction.
+  // Không có token = khách chưa đăng nhập, không phải lỗi → trả null.
   async refresh(token) {
-    if (!token) throw invalidRefreshToken();
+    if (!token) return null;
     const tokenHash = this.jwtUtil.hashToken(token);
 
     const result = await withTransaction(this.pool, async (client) => {

@@ -16,6 +16,21 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { parseApiError } from '../utils/api-error.js';
 
 const SEARCH_DEBOUNCE_MS = 300;
+const SLOW_LOAD_MS = 5000;
+
+// true khi `active` đã kéo dài quá `delayMs`; về false ngay khi `active` tắt.
+function useSlow(active, delayMs) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!active) return undefined;
+    const timer = setTimeout(() => setSlow(true), delayMs);
+    return () => {
+      clearTimeout(timer);
+      setSlow(false);
+    };
+  }, [active, delayMs]);
+  return active && slow;
+}
 
 function toSearchParams(q, page = 1) {
   const params = {};
@@ -62,6 +77,7 @@ export default function HomePage() {
     queryFn: () => listEvents({ q, page }),
     placeholderData: keepPreviousData,
   });
+  const slowLoading = useSlow(query.isPending, SLOW_LOAD_MS);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -118,7 +134,14 @@ export default function HomePage() {
 
       <div className="mt-8">
         {query.isPending ? (
-          <Spinner />
+          <>
+            <Spinner />
+            {slowLoading && (
+              <p className="text-center text-base text-muted">
+                Máy chủ đang khởi động, lần đầu có thể mất đến một phút.
+              </p>
+            )}
+          </>
         ) : query.isError ? (
           <ErrorMessage
             message={parseApiError(query.error).message}
