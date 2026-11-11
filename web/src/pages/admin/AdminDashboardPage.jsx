@@ -4,6 +4,8 @@ import { getAdminStats } from '../../api/admin.api.js';
 import ErrorMessage from '../../components/ErrorMessage.jsx';
 import Spinner from '../../components/Spinner.jsx';
 import StatCard from '../../components/StatCard.jsx';
+import { buttonClass } from '../../components/ui/button-class.js';
+import Panel from '../../components/ui/Panel.jsx';
 import { parseApiError } from '../../utils/api-error.js';
 import { formatVnd } from '../../utils/format.js';
 
@@ -21,10 +23,10 @@ const eventStatusLabels = [
 
 function StatsGroup({ title, children }) {
   return (
-    <div>
+    <Panel as="section">
       <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="mt-3 grid gap-4 sm:grid-cols-3">{children}</div>
-    </div>
+      <div className="mt-4 grid gap-6 sm:grid-cols-3">{children}</div>
+    </Panel>
   );
 }
 
@@ -35,11 +37,8 @@ export default function AdminDashboardPage() {
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Tổng quan</h1>
-        <Link
-          to="/admin/users"
-          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover"
-        >
+        <h1 className="text-2xl font-semibold">Tổng quan</h1>
+        <Link to="/admin/users" className={buttonClass({ variant: 'secondary' })}>
           Quản lý user
         </Link>
       </div>
@@ -53,10 +52,10 @@ export default function AdminDashboardPage() {
             onRetry={() => statsQuery.refetch()}
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <StatsGroup title="Bán vé">
               <StatCard label="Tổng doanh thu" value={formatVnd(stats.totalRevenue)} />
-              <StatCard label="Tổng vé đã bán" value={stats.ticketsSold} />
+              <StatCard label="Tổng vé đã bán" value={stats.ticketsSold.toLocaleString('vi-VN')} />
             </StatsGroup>
             <StatsGroup title="User theo role">
               {roleLabels.map(({ key, label }) => (

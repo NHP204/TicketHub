@@ -2,6 +2,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import FormField from '../components/FormField.jsx';
+import Button from '../components/ui/Button.jsx';
+import Notice from '../components/ui/Notice.jsx';
 import { useAuth } from '../context/use-auth.js';
 import { parseApiError } from '../utils/api-error.js';
 
@@ -31,13 +33,13 @@ export default function RegisterPage() {
   }
 
   return (
-    <section className="mx-auto max-w-md rounded-lg bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-bold">Đăng ký</h1>
+    <section className="mx-auto max-w-md rounded-panel border border-line bg-surface p-6 sm:p-8">
+      <h1 className="text-2xl font-semibold">Đăng ký</h1>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Notice tone="error" className="mt-4">
           {error.message}
-        </p>
+        </Notice>
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
@@ -70,19 +72,20 @@ export default function RegisterPage() {
           error={error?.fieldErrors.password}
           required
         />
-        <p className="text-xs text-slate-500">Tối thiểu 8 ký tự, có cả chữ và số.</p>
-        <button
+        <p className="text-sm text-muted">Tối thiểu 8 ký tự, có cả chữ và số.</p>
+        <Button
           type="submit"
-          disabled={mutation.isPending}
-          className="w-full rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60"
+          loading={mutation.isPending}
+          loadingLabel="Đang đăng ký..."
+          className="w-full"
         >
-          {mutation.isPending ? 'Đang đăng ký...' : 'Đăng ký'}
-        </button>
+          Đăng ký
+        </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-slate-600">
+      <p className="mt-6 text-center text-base text-muted">
         Đã có tài khoản?{' '}
-        <Link to="/login" className="text-cobalt hover:underline">
+        <Link to="/login" className="font-medium text-cobalt hover:underline">
           Đăng nhập
         </Link>
       </p>

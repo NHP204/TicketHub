@@ -1,4 +1,6 @@
 import { useEffect, useId, useState } from 'react';
+import Button from './ui/Button.jsx';
+import Notice from './ui/Notice.jsx';
 
 // Giống BANNER_IMAGE_TYPES và BANNER_MAX_BYTES của API.
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -52,16 +54,16 @@ export default function BannerUpload({
         <img
           src={shownUrl}
           alt={previewUrl ? 'Xem trước banner' : 'Banner hiện tại'}
-          className="aspect-[3/1] w-full rounded-md object-cover"
+          className="aspect-[3/1] w-full rounded-control object-cover"
         />
       ) : (
-        <div className="flex aspect-[3/1] w-full items-center justify-center rounded-md bg-slate-100 text-sm text-slate-500">
+        <div className="flex aspect-[3/1] w-full items-center justify-center rounded-control border-2 border-dashed border-line text-base text-muted">
           Chưa có banner
         </div>
       )}
 
       <div>
-        <label htmlFor={inputId} className="block text-sm font-medium text-slate-700">
+        <label htmlFor={inputId} className="block text-sm font-medium text-ink">
           Chọn ảnh banner
         </label>
         <input
@@ -70,26 +72,22 @@ export default function BannerUpload({
           accept={ALLOWED_TYPES.join(',')}
           onChange={handleChange}
           disabled={disabled || isUploading}
-          className="mt-1 block w-full text-sm text-slate-600"
+          className="mt-1 block w-full text-base text-muted file:mr-3 file:min-h-11 file:rounded-control file:border file:border-line file:bg-surface file:px-4 file:font-medium file:text-ink"
         />
-        <p className="mt-1 text-xs text-slate-500">JPG, PNG hoặc WebP, tối đa 2 MB.</p>
+        <p className="mt-1 text-sm text-muted">JPG, PNG hoặc WebP, tối đa 2 MB.</p>
       </div>
 
-      {(error || apiError) && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error ?? apiError.message}
-        </p>
-      )}
+      {(error || apiError) && <Notice tone="error">{error ?? apiError.message}</Notice>}
 
       {file && (
-        <button
-          type="button"
+        <Button
           onClick={handleUpload}
-          disabled={disabled || isUploading}
-          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60"
+          disabled={disabled}
+          loading={isUploading}
+          loadingLabel="Đang tải lên..."
         >
-          {isUploading ? 'Đang tải lên...' : 'Tải lên'}
-        </button>
+          Tải lên
+        </Button>
       )}
     </div>
   );

@@ -7,6 +7,7 @@ const VARIANTS = {
   secondary: 'border border-line bg-surface text-ink hover:border-ink',
   danger: 'bg-danger text-surface hover:bg-danger-hover',
   ghost: 'text-cobalt hover:bg-cobalt/8',
+  'danger-ghost': 'text-danger hover:bg-danger/5',
 };
 
 const SIZES = {

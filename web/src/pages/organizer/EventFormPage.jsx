@@ -1,8 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createEvent } from '../../api/organizer.api.js';
+import BackLink from '../../components/BackLink.jsx';
 import FormField from '../../components/FormField.jsx';
+import Button from '../../components/ui/Button.jsx';
+import Field from '../../components/ui/Field.jsx';
+import Notice from '../../components/ui/Notice.jsx';
+import Panel from '../../components/ui/Panel.jsx';
+import Textarea from '../../components/ui/Textarea.jsx';
 import { parseApiError } from '../../utils/api-error.js';
 
 // ISO 8601 → giá trị của <input type="datetime-local"> theo giờ máy người dùng.
@@ -78,11 +84,7 @@ export function EventForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      {apiError && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {apiError.message}
-        </p>
-      )}
+      {apiError && <Notice tone="error">{apiError.message}</Notice>}
       <fieldset disabled={disabled} className="space-y-4">
         <FormField
           id="title"
@@ -92,29 +94,15 @@ export function EventForm({
           error={fieldError('title')}
           required
         />
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-slate-700">
-            Mô tả
-          </label>
-          <textarea
-            id="description"
+        <Field id="description" label="Mô tả" error={descriptionError}>
+          <Textarea
             name="description"
             rows={5}
             value={form.description}
             onChange={handleChange}
-            aria-invalid={descriptionError ? 'true' : undefined}
-            aria-describedby={descriptionError ? 'description-error' : undefined}
-            className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-cobalt focus:outline-none ${
-              descriptionError ? 'border-red-400' : 'border-slate-300'
-            }`}
             required
           />
-          {descriptionError && (
-            <p id="description-error" className="mt-1 text-sm text-red-600">
-              {descriptionError}
-            </p>
-          )}
-        </div>
+        </Field>
         <FormField
           id="venue"
           label="Địa điểm"
@@ -143,13 +131,9 @@ export function EventForm({
             required
           />
         </div>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md bg-cobalt px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt-hover disabled:opacity-60"
-        >
-          {isSubmitting ? 'Đang lưu...' : submitLabel}
-        </button>
+        <Button type="submit" loading={isSubmitting} loadingLabel="Đang lưu...">
+          {submitLabel}
+        </Button>
       </fieldset>
     </form>
   );
@@ -173,18 +157,16 @@ export default function EventFormPage() {
 
   return (
     <section className="mx-auto max-w-2xl">
-      <Link to="/organizer" className="text-sm text-cobalt hover:underline">
-        ← Quản lý sự kiện
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold">Tạo sự kiện</h1>
-      <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">
+      <BackLink to="/organizer">Quản lý sự kiện</BackLink>
+      <h1 className="mt-2 text-2xl font-semibold">Tạo sự kiện</h1>
+      <Panel className="mt-6">
         <EventForm
           onSubmit={(fields) => mutation.mutate(fields)}
           isSubmitting={mutation.isPending}
           apiError={apiError}
           submitLabel="Tạo sự kiện"
         />
-      </div>
+      </Panel>
     </section>
   );
 }

@@ -3,6 +3,7 @@ const PATHS = {
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
   'chevron-up': <path d="M6 15l6-6 6 6" />,
+  'chevron-left': <path d="M15 6l-6 6 6 6" />,
   calendar: (
     <>
       <rect x="4" y="5" width="16" height="15" rx="2" />
