@@ -31,8 +31,11 @@ export function AuthProvider({ children }) {
     let cancelled = false;
     authApi
       .refresh()
-      .then(({ user: restored }) => {
-        if (!cancelled) becomeAuthenticated(restored);
+      .then((session) => {
+        if (cancelled) return;
+        // null = API trả 204 (không có refresh cookie) → khách.
+        if (session) becomeAuthenticated(session.user);
+        else becomeGuest();
       })
       .catch(() => {
         if (!cancelled) becomeGuest();

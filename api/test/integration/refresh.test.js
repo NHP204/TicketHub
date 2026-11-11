@@ -67,6 +67,22 @@ test('sau khi phát hiện dùng lại token, cookie mới cũng bị từ chố
   assert.equal(res.status, 401);
 });
 
+test('refresh không có cookie trả 204, không body, không Set-Cookie', async () => {
+  const res = await request(app).post('/api/v1/auth/refresh');
+  assert.deepEqual(
+    { status: res.status, text: res.text, setCookie: res.headers['set-cookie'] },
+    { status: 204, text: '', setCookie: undefined },
+  );
+});
+
+test('refresh bằng cookie rác trả 401 INVALID_REFRESH_TOKEN', async () => {
+  const res = await refresh('refresh_token=khong-phai-token-that');
+  assert.deepEqual(
+    { status: res.status, code: res.body.error.code },
+    { status: 401, code: 'INVALID_REFRESH_TOKEN' },
+  );
+});
+
 test('logout trả 204', async () => {
   const cookie = cookiePair(await registerAndLogin());
   const res = await request(app).post('/api/v1/auth/logout').set('Cookie', cookie);

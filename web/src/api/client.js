@@ -24,11 +24,16 @@ export function setOnSessionExpired(callback) {
 }
 
 // Gọi /auth/refresh (cookie httpOnly), lưu access token mới, trả { user, accessToken }.
+// 204 = không có cookie (khách) → trả null.
 export function refreshSession() {
   if (!refreshPromise) {
     refreshPromise = api
       .post('/auth/refresh', null, { skipAuthRefresh: true })
       .then((res) => {
+        if (res.status === 204) {
+          setAccessToken(null);
+          return null;
+        }
         setAccessToken(res.data.data.accessToken);
         return res.data.data;
       })
@@ -67,9 +72,14 @@ api.interceptors.response.use(
     // Token đã được làm mới bởi request khác trong lúc request này chạy → gửi lại luôn.
     const sentToken = config.headers?.Authorization;
     if (!accessToken || sentToken === bearer(accessToken)) {
+      let session;
       try {
-        await refreshSession();
+        session = await refreshSession();
       } catch {
+        session = null;
+      }
+      // 204 (không còn cookie) xử lý như refresh thất bại.
+      if (!session) {
         onSessionExpired();
         throw error;
       }

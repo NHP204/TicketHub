@@ -86,13 +86,16 @@ paths:
     post:
       tags: [Auth]
       summary: Xoay vòng refresh token, cấp access token mới
+      description: Không gửi cookie `refresh_token` (khách chưa đăng nhập) thì trả 204, không phải lỗi.
       security:
         - refreshCookie: []
       responses:
         '200': { $ref: '#/components/responses/SessionOk' }
+        '204':
+          description: Không có cookie refresh_token — khách chưa đăng nhập; không body, không Set-Cookie
         '401':
           description: |
-            INVALID_REFRESH_TOKEN — thiếu, sai hoặc hết hạn.
+            INVALID_REFRESH_TOKEN — cookie sai hoặc hết hạn.
             TOKEN_REUSED — token đã bị thu hồi mà vẫn được gửi lên; mọi phiên của user bị thu hồi.
           content:
             application/json:
